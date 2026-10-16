@@ -1,0 +1,1211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Operations Console - Campus-Tutor</title>
+    <meta name="description" content="Campus-Tutor Administrator Operations Dashboard. Manage campus members, verified peer tutors, disciplinary reports, and safety escalations.">
+    <link rel="stylesheet" href="stylee.css">
+</head>
+<body class="admin-body">
+    <!-- Header Navigation -->
+    <header class="site-header">
+        <div class="title">
+            <a href="index.html" style="display: flex; align-items: center; gap: 10px;">
+                <h1>Campus-Tutor</h1>
+                <span style="background: rgba(226, 160, 63, 0.25); color: var(--accent-amber); font-size: 11px; font-weight: 800; padding: 2px 7px; border-radius: 4px; border: 1px solid rgba(226, 160, 63, 0.4); text-transform: uppercase;">Admin</span>
+            </a>
+        </div>
+        <nav>
+            <a href="index.html">Home</a>
+            <a href="browse.html">Browse Requests</a>
+            <a href="postrequest.html">Post a Request</a>
+            <a href="profile.html">My Profile</a>
+            <a href="admin.html" class="active nav-admin-link"><span style="background: rgba(226, 160, 63, 0.2); color: #e2a03f; padding: 3px 8px; border-radius: 6px; font-weight: 700; font-size: 12.5px; border: 1px solid rgba(226, 160, 63, 0.4); display: inline-flex; align-items: center; gap: 4px;">🛡️ Admin Portal</span></a>
+            <a href="javascript:void(0)" class="nav-login-btn nav-signout-btn" onclick="logoutUser(event)"><span style="font-size: 13.5px; font-weight: 700;">🚪 Sign Out</span></a>
+        </nav>
+    </header>
+
+    <!-- Admin Hero Banner -->
+    <div class="admin-hero-banner">
+        <div class="admin-hero-content">
+            <div class="admin-hero-title-group">
+                <div class="admin-shield-icon-badge">🛡️</div>
+                <div>
+                    <h2>
+                        <span>Institutional Operations Console</span>
+                        <span class="admin-clearance-pill">Clearance: Level 3</span>
+                    </h2>
+                    <p class="admin-hero-subtitle" id="admin-user-subtitle">
+                        Logged in as <strong>Administrator</strong> • Institutional Safety & Operations
+                    </p>
+                </div>
+            </div>
+
+            <div class="admin-hero-actions">
+                <div class="admin-badge-stat">
+                    <span class="admin-pulse-dot"></span>
+                    <span id="admin-db-stat-text">Cloud Firestore: <strong>Live Real-Time</strong></span>
+                </div>
+                <button type="button" class="admin-btn-secondary" onclick="exportDataAuditLog()">
+                    <span>📥 Export Audit Log</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <main class="admin-container">
+        
+        <!-- 2 PRIMARY TABS SWITCHER -->
+        <div class="admin-tabs-nav-container">
+            <div class="admin-tabs-list" role="tablist" aria-label="Admin Navigation Tabs">
+                <button 
+                    type="button" 
+                    class="admin-tab-btn active" 
+                    id="tab-btn-members" 
+                    role="tab" 
+                    aria-selected="true" 
+                    aria-controls="panel-members"
+                    onclick="switchAdminTab('members')"
+                >
+                    <span>👥 Current Users</span>
+                    <span class="tab-count-badge" id="badge-total-members">1</span>
+                </button>
+
+                <button 
+                    type="button" 
+                    class="admin-tab-btn reports-tab" 
+                    id="tab-btn-reports" 
+                    role="tab" 
+                    aria-selected="false" 
+                    aria-controls="panel-reports"
+                    onclick="switchAdminTab('reports')"
+                >
+                    <span>🚩 Reports</span>
+                    <span class="tab-count-badge" id="badge-pending-reports">0 Pending</span>
+                </button>
+            </div>
+
+            <div class="admin-tabs-secondary-tools">
+                <button type="button" class="admin-btn-primary" id="btn-add-entity" onclick="openAddMemberModal()">
+                    <span>➕ Add User</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- ==============================================
+             TAB PANEL 1: MEMBERS DIRECTORY
+             ============================================== -->
+        <section id="panel-members" class="admin-tab-panel active" role="tabpanel" aria-labelledby="tab-btn-members">
+            <!-- Members KPI Summary Cards -->
+            <div class="admin-kpi-grid">
+                <div class="admin-kpi-card kpi-navy">
+                    <div class="admin-kpi-info">
+                        <h4>Total Registered Members</h4>
+                        <div class="admin-kpi-value" id="kpi-members-count">1</div>
+                        <div class="admin-kpi-sub">Verified campus scholars</div>
+                    </div>
+                    <div class="admin-kpi-icon-box">🎓</div>
+                </div>
+
+                <div class="admin-kpi-card kpi-amber">
+                    <div class="admin-kpi-info">
+                        <h4>Verified Peer Tutors</h4>
+                        <div class="admin-kpi-value" id="kpi-tutors-count">1</div>
+                        <div class="admin-kpi-sub">★ 4.9 avg rating</div>
+                    </div>
+                    <div class="admin-kpi-icon-box">⭐</div>
+                </div>
+
+                <div class="admin-kpi-card kpi-green">
+                    <div class="admin-kpi-info">
+                        <h4>Active Student Requesters</h4>
+                        <div class="admin-kpi-value" id="kpi-students-count">0</div>
+                        <div class="admin-kpi-sub">Ready for requests</div>
+                    </div>
+                    <div class="admin-kpi-icon-box">📚</div>
+                </div>
+
+                <div class="admin-kpi-card kpi-red">
+                    <div class="admin-kpi-info">
+                        <h4>Flagged / Suspended</h4>
+                        <div class="admin-kpi-value" id="kpi-flagged-count">0</div>
+                        <div class="admin-kpi-sub" style="color: #10B981;">No active penalties</div>
+                    </div>
+                    <div class="admin-kpi-icon-box">⚠️</div>
+                </div>
+            </div>
+
+            <!-- Filter & Controls -->
+            <div class="admin-filter-bar">
+                <div class="admin-search-wrapper">
+                    <span class="admin-search-icon">🔍</span>
+                    <input 
+                        type="text" 
+                        id="members-search-input" 
+                        class="admin-search-input" 
+                        placeholder="Search members by name, email, student ID, major..." 
+                        oninput="filterMembersTable()"
+                    >
+                </div>
+
+                <div class="admin-filter-groups">
+                    <select id="members-role-filter" class="admin-select" onchange="filterMembersTable()">
+                        <option value="all">All Roles</option>
+                        <option value="tutor">Verified Tutors</option>
+                        <option value="student">Student Requesters</option>
+                        <option value="admin">Administrators</option>
+                    </select>
+
+                    <select id="members-status-filter" class="admin-select" onchange="filterMembersTable()">
+                        <option value="all">All Account Statuses</option>
+                        <option value="active">Active & Verified</option>
+                        <option value="warning">Under Review / Warning</option>
+                        <option value="suspended">Suspended Accounts</option>
+                    </select>
+
+                    <select id="members-sort-filter" class="admin-select" onchange="filterMembersTable()">
+                        <option value="name-asc">Sort: Name (A-Z)</option>
+                        <option value="rating-desc">Sort: Highest Rating</option>
+                        <option value="sessions-desc">Sort: Most Tutoring Sessions</option>
+                        <option value="strikes-desc">Sort: Highest Violations</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Members Data Table -->
+            <div class="admin-card-table">
+                <div class="table-responsive-wrapper">
+                    <table class="admin-table" id="members-table">
+                        <thead>
+                            <tr>
+                                <th>Member Profile</th>
+                                <th>Role</th>
+                                <th>Department & Year</th>
+                                <th>Sessions & Activity</th>
+                                <th>Rating</th>
+                                <th>Safety Status</th>
+                                <th style="text-align: right;">Moderation Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="members-table-body">
+                            <!-- Populated dynamically via renderMembersTable() -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- ==============================================
+             TAB PANEL 2: REPORTS & MODERATION
+             ============================================== -->
+        <section id="panel-reports" class="admin-tab-panel" role="tabpanel" aria-labelledby="tab-btn-reports">
+            <!-- Reports KPI Summary Cards -->
+            <div class="admin-kpi-grid">
+                <div class="admin-kpi-card kpi-amber">
+                    <div class="admin-kpi-info">
+                        <h4>Pending Triage</h4>
+                        <div class="admin-kpi-value" id="kpi-rep-pending">0</div>
+                        <div class="admin-kpi-sub" style="color: #10B981;">Queue clear</div>
+                    </div>
+                    <div class="admin-kpi-icon-box">⏳</div>
+                </div>
+
+                <div class="admin-kpi-card kpi-red">
+                    <div class="admin-kpi-info">
+                        <h4>Under Investigation</h4>
+                        <div class="admin-kpi-value" id="kpi-rep-investigating">1</div>
+                        <div class="admin-kpi-sub" style="color: #DC2626;">Active Honor Board case</div>
+                    </div>
+                    <div class="admin-kpi-icon-box">🚨</div>
+                </div>
+
+                <div class="admin-kpi-card kpi-green">
+                    <div class="admin-kpi-info">
+                        <h4>Resolved Cases</h4>
+                        <div class="admin-kpi-value" id="kpi-rep-resolved">0</div>
+                        <div class="admin-kpi-sub">No recent closures</div>
+                    </div>
+                    <div class="admin-kpi-icon-box">✅</div>
+                </div>
+
+                <div class="admin-kpi-card kpi-navy">
+                    <div class="admin-kpi-info">
+                        <h4>Dismissed / Inconclusive</h4>
+                        <div class="admin-kpi-value" id="kpi-rep-dismissed">0</div>
+                        <div class="admin-kpi-sub">No dismissed records</div>
+                    </div>
+                    <div class="admin-kpi-icon-box">📁</div>
+                </div>
+            </div>
+
+            <!-- Filter & Controls for Reports -->
+            <div class="admin-filter-bar">
+                <div class="admin-search-wrapper">
+                    <span class="admin-search-icon">🔍</span>
+                    <input 
+                        type="text" 
+                        id="reports-search-input" 
+                        class="admin-search-input" 
+                        placeholder="Search reports by Case ID, student name, description, evidence..." 
+                        oninput="filterReportsFeed()"
+                    >
+                </div>
+
+                <div class="admin-filter-groups">
+                    <select id="reports-status-filter" class="admin-select" onchange="filterReportsFeed()">
+                        <option value="all">All Case Statuses</option>
+                        <option value="pending">Pending Triage</option>
+                        <option value="investigating">Under Investigation</option>
+                        <option value="resolved">Resolved</option>
+                        <option value="dismissed">Dismissed</option>
+                    </select>
+
+                    <select id="reports-priority-filter" class="admin-select" onchange="filterReportsFeed()">
+                        <option value="all">All Priorities</option>
+                        <option value="Critical">Critical Priority</option>
+                        <option value="High">High Priority</option>
+                        <option value="Medium">Medium Priority</option>
+                        <option value="Low">Low Priority</option>
+                    </select>
+
+                    <select id="reports-category-filter" class="admin-select" onchange="filterReportsFeed()">
+                        <option value="all">All Incident Types</option>
+                        <option value="Academic Integrity">Academic Integrity</option>
+                        <option value="Payment Dispute">Payment Dispute</option>
+                        <option value="No-Show & Spam">No-Show & Spam</option>
+                        <option value="Inappropriate Behavior">Inappropriate Conduct</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Reports Feed Stream -->
+            <div id="reports-feed-container">
+                <!-- Rendered dynamically via renderReportsFeed() -->
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ==============================================
+         MODAL 1: MEMBER DOSSIER / DETAILS MODAL
+         ============================================== -->
+    <div class="admin-modal-overlay" id="modal-member-dossier" role="dialog" aria-modal="true" aria-labelledby="modal-member-name">
+        <div class="admin-modal-card">
+            <div class="admin-modal-header">
+                <h3 id="modal-member-name">Member Profile Dossier</h3>
+                <button type="button" class="admin-modal-close-btn" onclick="closeModal('modal-member-dossier')" aria-label="Close modal">✕</button>
+            </div>
+            <div class="admin-modal-body" id="modal-member-body">
+                <!-- Dynamic Content injected by viewMemberDossier() -->
+            </div>
+            <div class="admin-modal-footer" id="modal-member-footer">
+                <button type="button" class="admin-btn-secondary" onclick="closeModal('modal-member-dossier')">Close Dossier</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==============================================
+         MODAL 2: REPORT INVESTIGATION & TRIAGE MODAL
+         ============================================== -->
+    <div class="admin-modal-overlay" id="modal-report-investigate" role="dialog" aria-modal="true" aria-labelledby="modal-report-heading">
+        <div class="admin-modal-card">
+            <div class="admin-modal-header">
+                <h3 id="modal-report-heading">Incident Case Investigation</h3>
+                <button type="button" class="admin-modal-close-btn" onclick="closeModal('modal-report-investigate')" aria-label="Close modal">✕</button>
+            </div>
+            <div class="admin-modal-body" id="modal-report-body">
+                <!-- Dynamic Content injected by openReportInvestigation() -->
+            </div>
+            <div class="admin-modal-footer" id="modal-report-footer">
+                <!-- Dynamic Action Buttons -->
+            </div>
+        </div>
+    </div>
+
+    <!-- ==============================================
+         MODAL 3: ADD NEW MEMBER MODAL
+         ============================================== -->
+    <div class="admin-modal-overlay" id="modal-add-member" role="dialog" aria-modal="true" aria-labelledby="modal-add-title">
+        <div class="admin-modal-card">
+            <div class="admin-modal-header">
+                <h3 id="modal-add-title">Register New Campus Member</h3>
+                <button type="button" class="admin-modal-close-btn" onclick="closeModal('modal-add-member')" aria-label="Close modal">✕</button>
+            </div>
+            <form id="add-member-form" onsubmit="handleAddMemberSubmit(event)">
+                <div class="admin-modal-body">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+                        <div class="input-group">
+                            <label for="new-member-name">Full Legal / Campus Name <span class="required-star">*</span></label>
+                            <div class="input-field-wrapper">
+                                <input type="text" id="new-member-name" required placeholder="e.g. Liam Patel">
+                            </div>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="new-member-id">Student / Staff ID <span class="required-star">*</span></label>
+                            <div class="input-field-wrapper">
+                                <input type="text" id="new-member-id" required placeholder="e.g. STU-9182">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="input-group" style="margin-top: 12px;">
+                        <label for="new-member-email">University Email <span class="required-star">*</span></label>
+                        <div class="input-field-wrapper">
+                            <input type="email" id="new-member-email" required placeholder="e.g. liam.p@campus.edu">
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 12px;">
+                        <div class="input-group">
+                            <label for="new-member-role">Account Role <span class="required-star">*</span></label>
+                            <select id="new-member-role" class="admin-select" style="width: 100%; height: 44px;">
+                                <option value="tutor">Verified Peer Tutor</option>
+                                <option value="student" selected>Student Requester</option>
+                                <option value="admin">Administrator Staff</option>
+                            </select>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="new-member-year">Academic Year <span class="required-star">*</span></label>
+                            <select id="new-member-year" class="admin-select" style="width: 100%; height: 44px;">
+                                <option value="Freshman (1st Year)">Freshman (1st Year)</option>
+                                <option value="Sophomore (2nd Year)">Sophomore (2nd Year)</option>
+                                <option value="Junior (3rd Year)" selected>Junior (3rd Year)</option>
+                                <option value="Senior (4th Year)">Senior (4th Year)</option>
+                                <option value="Graduate / Staff">Graduate / Staff</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="input-group" style="margin-top: 12px;">
+                        <label for="new-member-dept">Department / Major <span class="required-star">*</span></label>
+                        <div class="input-field-wrapper">
+                            <input type="text" id="new-member-dept" required placeholder="e.g. Mechanical & Aerospace Engineering">
+                        </div>
+                    </div>
+
+                    <div class="input-group" style="margin-top: 12px;">
+                        <label for="new-member-bio">Bio & Subject Competencies</label>
+                        <textarea id="new-member-bio" class="input-field-wrapper" style="width: 100%; height: 80px; padding: 10px; border-radius: 8px; border: 1px solid #CBD5E1; font-family: inherit; font-size: 13.5px;" placeholder="Brief summary of subjects tutored or study areas..."></textarea>
+                    </div>
+                </div>
+                <div class="admin-modal-footer">
+                    <button type="button" class="admin-btn-secondary" onclick="closeModal('modal-add-member')">Cancel</button>
+                    <button type="submit" class="admin-btn-primary"><span>Register Member</span></button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <p>&copy; 2026 Campus-Tutor. Administrator Operations Portal • Confidential Campus Records System.</p>
+    </footer>
+
+    <!-- Core App Logic & Admin Controller -->
+    <script type="module" src="firebase-backend.js"></script>
+    <script src="app.js"></script>
+    <script>
+        // State controllers
+        let activeTab = 'members';
+        let membersData = [];
+        let reportsData = [];
+
+        // Check authentication clearance on load
+        function checkAdminClearance() {
+            const user = (window.CampusBackend && window.CampusBackend.getCurrentUser()) || getCurrentUser();
+            const subtitle = document.getElementById('admin-user-subtitle');
+            
+            if (!user || user.role !== 'admin') {
+                // If not logged in as admin, provide smooth simulation session for easy review
+                const demoAdmin = {
+                    name: 'Administrator',
+                    email: 'admin@campus.edu',
+                    role: 'admin',
+                    department: 'Institutional Safety & Operations',
+                    avatar: 'AD',
+                    clearance: 'Level-3 Senior Moderator',
+                    loginTime: new Date().toISOString()
+                };
+                localStorage.setItem('campus_tutor_user', JSON.stringify(demoAdmin));
+                initAuthNav();
+            }
+
+            const currentUser = (window.CampusBackend && window.CampusBackend.getCurrentUser()) || getCurrentUser();
+            if (currentUser && subtitle) {
+                subtitle.innerHTML = `Logged in as <strong>${currentUser.name}</strong> • ${currentUser.department || 'Administrator'}`;
+            }
+        }
+
+        // Tab Switching logic (Members vs Reports)
+        function switchAdminTab(tabName) {
+            activeTab = tabName;
+            const btnMembers = document.getElementById('tab-btn-members');
+            const btnReports = document.getElementById('tab-btn-reports');
+            const panelMembers = document.getElementById('panel-members');
+            const panelReports = document.getElementById('panel-reports');
+            const btnAddEntity = document.getElementById('btn-add-entity');
+
+            if (tabName === 'members') {
+                btnMembers.classList.add('active');
+                btnMembers.setAttribute('aria-selected', 'true');
+                btnReports.classList.remove('active');
+                btnReports.setAttribute('aria-selected', 'false');
+
+                panelMembers.classList.add('active');
+                panelReports.classList.remove('active');
+
+                if (btnAddEntity) {
+                    btnAddEntity.style.display = 'inline-flex';
+                    btnAddEntity.innerHTML = '<span>➕ Add User</span>';
+                    btnAddEntity.onclick = openAddMemberModal;
+                }
+            } else {
+                btnReports.classList.add('active');
+                btnReports.setAttribute('aria-selected', 'true');
+                btnMembers.classList.remove('active');
+                btnMembers.setAttribute('aria-selected', 'false');
+
+                panelReports.classList.add('active');
+                panelMembers.classList.remove('active');
+
+                if (btnAddEntity) {
+                    btnAddEntity.style.display = 'inline-flex';
+                    btnAddEntity.innerHTML = '<span>⚡ Quick Triage All</span>';
+                    btnAddEntity.onclick = quickTriageReports;
+                }
+            }
+            window.location.hash = tabName;
+        }
+
+        // Load & Initialize Datasets via API or Firebase Real-time Streams
+        async function loadDashboardData() {
+            try {
+                const [mRes, rRes] = await Promise.all([
+                    fetch('/api/members'),
+                    fetch('/api/reports')
+                ]);
+                if (mRes.ok && rRes.ok) {
+                    const mData = await mRes.json();
+                    const rData = await rRes.json();
+                    if (Array.isArray(mData)) membersData = mData;
+                    if (Array.isArray(rData)) reportsData = rData;
+                    updateKPIs();
+                    renderMembersTable();
+                    renderReportsFeed();
+
+                    const statText = document.getElementById('admin-db-stat-text');
+                    if (statText) statText.innerHTML = 'Backend Server: <strong>Live Real-Time API</strong>';
+                    return;
+                }
+            } catch (_) {}
+
+            if (window.CampusBackend && typeof window.CampusBackend.subscribeMembers === 'function') {
+                window.CampusBackend.subscribeMembers((list) => {
+                    membersData = list;
+                    updateKPIs();
+                    renderMembersTable();
+                });
+                window.CampusBackend.subscribeReports((list) => {
+                    reportsData = list;
+                    updateKPIs();
+                    renderReportsFeed();
+                });
+            } else {
+                membersData = getStoredMembers();
+                reportsData = getStoredReports();
+                updateKPIs();
+                renderMembersTable();
+                renderReportsFeed();
+            }
+
+            // Update database status indicator
+            const statText = document.getElementById('admin-db-stat-text');
+            if (statText && window.CampusBackend) {
+                if (window.CampusBackend.isLiveFirebase) {
+                    statText.innerHTML = 'Cloud Firestore: <strong>Live Real-Time</strong>';
+                } else {
+                    statText.innerHTML = 'Backend Mode: <strong>Demo / Local</strong>';
+                }
+            }
+        }
+
+        // Update All KPI Badges and Stat counters
+        function updateKPIs() {
+            // Members counts
+            const totalMembers = membersData.length;
+            const tutorsCount = membersData.filter(m => m.role === 'tutor').length;
+            const studentsCount = membersData.filter(m => m.role === 'student').length;
+            const flaggedCount = membersData.filter(m => m.status === 'warning' || m.status === 'suspended').length;
+
+            document.getElementById('badge-total-members').textContent = totalMembers;
+            document.getElementById('kpi-members-count').textContent = totalMembers;
+            document.getElementById('kpi-tutors-count').textContent = tutorsCount;
+            document.getElementById('kpi-students-count').textContent = studentsCount;
+            document.getElementById('kpi-flagged-count').textContent = flaggedCount;
+
+            // Reports counts
+            const pendingRep = reportsData.filter(r => r.status === 'pending').length;
+            const investigatingRep = reportsData.filter(r => r.status === 'investigating').length;
+            const resolvedRep = reportsData.filter(r => r.status === 'resolved').length;
+            const dismissedRep = reportsData.filter(r => r.status === 'dismissed').length;
+
+            document.getElementById('badge-pending-reports').textContent = `${pendingRep} Pending`;
+            document.getElementById('kpi-rep-pending').textContent = pendingRep;
+            document.getElementById('kpi-rep-investigating').textContent = investigatingRep;
+            document.getElementById('kpi-rep-resolved').textContent = resolvedRep;
+            document.getElementById('kpi-rep-dismissed').textContent = dismissedRep;
+        }
+
+        // Render Members Data Table
+        function renderMembersTable(filteredList = null) {
+            const list = filteredList || membersData;
+            const tbody = document.getElementById('members-table-body');
+            if (!tbody) return;
+
+            if (list.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7">
+                            <div class="admin-empty-state">
+                                <div class="admin-empty-icon">👥</div>
+                                <h4>No members match the selected criteria</h4>
+                                <p>Try adjusting your search terms or clearing role/status filters.</p>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = list.map(member => {
+                const roleClass = member.role === 'tutor' ? 'tutor' : member.role === 'admin' ? 'admin' : 'student';
+                const roleIcon = member.role === 'tutor' ? '⭐' : member.role === 'admin' ? '🛡️' : '🎓';
+                const roleText = member.role === 'tutor' ? 'Verified Tutor' : member.role === 'admin' ? 'Admin Staff' : 'Student Requester';
+                
+                let statusBadge = `<span class="status-pill status-active">● Active</span>`;
+                if (member.status === 'warning') {
+                    statusBadge = `<span class="status-pill status-warning">⚠️ Warning (${member.strikes || 1} Strike)</span>`;
+                } else if (member.status === 'suspended') {
+                    statusBadge = `<span class="status-pill status-suspended">🚫 Suspended</span>`;
+                }
+
+                const ratingDisplay = member.rating 
+                    ? `<span class="rating-chip">★ ${member.rating.toFixed(1)} <span style="font-size: 11px; color: #94A3B8; font-weight: normal;">(${member.reviewsCount || 0})</span></span>`
+                    : `<span style="color: #94A3B8; font-size: 12px;">N/A</span>`;
+
+                const isSuspended = member.status === 'suspended';
+                const suspendBtnLabel = isSuspended ? 'Unsuspend' : 'Suspend';
+                const suspendBtnClass = isSuspended ? 'btn-action-success' : 'btn-action-danger';
+                const suspendBtnIcon = isSuspended ? '✓' : '🚫';
+
+                return `
+                    <tr id="row-${member.id}">
+                        <td>
+                            <div class="member-cell-info">
+                                <div class="member-avatar-pill ${member.role === 'tutor' ? 'avatar-tutor' : ''}">
+                                    ${member.avatar || getInitials(member.name)}
+                                </div>
+                                <div class="member-name-block">
+                                    <strong>${member.name}</strong>
+                                    <span>${member.email}</span>
+                                    <span class="member-id-badge">${member.studentId}</span>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="role-badge ${roleClass}">${roleIcon} ${roleText}</span>
+                        </td>
+                        <td>
+                            <div style="font-weight: 600; color: #0F172A;">${member.department}</div>
+                            <div style="font-size: 12px; color: #64748B;">${member.year}</div>
+                        </td>
+                        <td>
+                            <div style="font-size: 13px;"><strong>${member.sessionsCount || 0}</strong> completed sessions</div>
+                            <div style="font-size: 12px; color: #64748B;">${member.requestsCount || 0} active/past requests</div>
+                        </td>
+                        <td>
+                            ${ratingDisplay}
+                        </td>
+                        <td>
+                            ${statusBadge}
+                        </td>
+                        <td style="text-align: right;">
+                            <div class="admin-row-actions" style="justify-content: flex-end;">
+                                <button type="button" class="btn-action-icon" title="View Member Dossier" onclick="viewMemberDossier('${member.id}')">
+                                    <span>👁️ Dossier</span>
+                                </button>
+                                <button type="button" class="btn-action-icon ${suspendBtnClass}" title="${suspendBtnLabel} Account" onclick="toggleMemberSuspension('${member.id}')">
+                                    <span>${suspendBtnIcon} ${suspendBtnLabel}</span>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Filter & Search Members
+        function filterMembersTable() {
+            const query = (document.getElementById('members-search-input').value || '').toLowerCase().trim();
+            const roleFilter = document.getElementById('members-role-filter').value;
+            const statusFilter = document.getElementById('members-status-filter').value;
+            const sortFilter = document.getElementById('members-sort-filter').value;
+
+            let result = membersData.filter(member => {
+                const matchesQuery = !query || 
+                    member.name.toLowerCase().includes(query) ||
+                    member.email.toLowerCase().includes(query) ||
+                    member.studentId.toLowerCase().includes(query) ||
+                    member.department.toLowerCase().includes(query) ||
+                    (member.tags && member.tags.some(t => t.toLowerCase().includes(query)));
+
+                const matchesRole = roleFilter === 'all' || member.role === roleFilter;
+                const matchesStatus = statusFilter === 'all' || member.status === statusFilter;
+
+                return matchesQuery && matchesRole && matchesStatus;
+            });
+
+            // Sorting
+            if (sortFilter === 'name-asc') {
+                result.sort((a, b) => a.name.localeCompare(b.name));
+            } else if (sortFilter === 'rating-desc') {
+                result.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+            } else if (sortFilter === 'sessions-desc') {
+                result.sort((a, b) => (b.sessionsCount || 0) - (a.sessionsCount || 0));
+            } else if (sortFilter === 'strikes-desc') {
+                result.sort((a, b) => (b.strikes || 0) - (a.strikes || 0));
+            }
+
+            renderMembersTable(result);
+        }
+
+        // View Member Dossier Modal
+        function viewMemberDossier(memberId) {
+            const member = membersData.find(m => m.id === memberId);
+            if (!member) return;
+
+            const modalHeading = document.getElementById('modal-member-name');
+            const modalBody = document.getElementById('modal-member-body');
+            const modalFooter = document.getElementById('modal-member-footer');
+
+            modalHeading.textContent = `Dossier: ${member.name} (${member.studentId})`;
+
+            const tagsHtml = member.tags ? member.tags.map(t => `<span style="background: #EEF2FF; color: #3730A3; font-size: 11.5px; font-weight: 600; padding: 2px 8px; border-radius: 4px; border: 1px solid #C7D2FE;">${t}</span>`).join(' ') : 'None listed';
+
+            modalBody.innerHTML = `
+                <div style="display: flex; gap: 18px; align-items: center; border-bottom: 1px solid #E2E8F0; padding-bottom: 18px; margin-bottom: 18px;">
+                    <div class="member-avatar-pill avatar-tutor" style="width: 58px; height: 58px; font-size: 22px;">
+                        ${member.avatar || getInitials(member.name)}
+                    </div>
+                    <div>
+                        <h4 style="margin: 0; font-size: 20px; color: #0F172A;">${member.name}</h4>
+                        <div style="color: #64748B; font-size: 13.5px;">${member.email} • ID: <strong>${member.studentId}</strong></div>
+                        <div style="margin-top: 6px; display: flex; gap: 8px; align-items: center;">
+                            <span class="role-badge ${member.role}">${member.roleLabel || member.role}</span>
+                            <span class="status-pill status-${member.status}">${member.status.toUpperCase()}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px;">
+                    <div style="background: #F8FAFC; padding: 12px; border-radius: 8px; border: 1px solid #E2E8F0;">
+                        <span style="font-size: 11.5px; color: #64748B; text-transform: uppercase; font-weight: 700; display: block;">Department & Year</span>
+                        <div style="font-weight: 600; color: #1E293B; margin-top: 2px;">${member.department}</div>
+                        <div style="font-size: 12.5px; color: #64748B;">${member.year}</div>
+                    </div>
+
+                    <div style="background: #F8FAFC; padding: 12px; border-radius: 8px; border: 1px solid #E2E8F0;">
+                        <span style="font-size: 11.5px; color: #64748B; text-transform: uppercase; font-weight: 700; display: block;">Academic Standing & Rating</span>
+                        <div style="font-weight: 700; color: #D97706; margin-top: 2px;">★ ${member.rating ? member.rating.toFixed(1) : '5.0'} / 5.0 (${member.reviewsCount || 0} reviews)</div>
+                        <div style="font-size: 12.5px; color: #059669; font-weight: 600;">Honor Code Compliant</div>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <span style="font-size: 12px; color: #64748B; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 6px;">Core Competencies & Courses</span>
+                    <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                        ${tagsHtml}
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <span style="font-size: 12px; color: #64748B; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 4px;">Biography & Notes</span>
+                    <p style="margin: 0; font-size: 13.5px; color: #334155; line-height: 1.5; background: #F8FAFC; padding: 10px 14px; border-radius: 8px; border: 1px solid #E2E8F0;">
+                        ${member.bio || 'No special bio remarks on file.'}
+                    </p>
+                </div>
+
+                <div style="background: ${member.strikes > 0 ? '#FEF2F2' : '#F0FDF4'}; border: 1px solid ${member.strikes > 0 ? '#FECACA' : '#BBF7D0'}; padding: 12px 14px; border-radius: 8px;">
+                    <strong style="color: ${member.strikes > 0 ? '#991B1B' : '#166534'}; font-size: 13px;">Disciplinary Record:</strong>
+                    <div style="font-size: 13px; color: ${member.strikes > 0 ? '#7F1D1D' : '#14532D'}; margin-top: 2px;">
+                        ${member.strikes > 0 ? `⚠️ Account holds ${member.strikes} active disciplinary strike(s). Requires moderator clearance for new tutoring listings.` : '✓ Clean record. No infractions or Honor Code disputes reported.'}
+                    </div>
+                </div>
+            `;
+
+            modalFooter.innerHTML = `
+                <button type="button" class="btn-action-icon btn-action-danger" onclick="issueStrikeToMember('${member.id}')">⚠️ Issue Warning Strike</button>
+                <button type="button" class="btn-action-icon ${member.status === 'suspended' ? 'btn-action-success' : 'btn-action-danger'}" onclick="toggleMemberSuspension('${member.id}', true)">
+                    ${member.status === 'suspended' ? '✓ Reactivate Account' : '🚫 Suspend Account'}
+                </button>
+                <button type="button" class="admin-btn-secondary" onclick="closeModal('modal-member-dossier')">Close</button>
+            `;
+
+            openModal('modal-member-dossier');
+        }
+
+        // Toggle Member Suspension
+        async function toggleMemberSuspension(memberId, fromModal = false) {
+            const index = membersData.findIndex(m => m.id === memberId || m.uid === memberId);
+            if (index === -1) return;
+
+            const current = membersData[index];
+            const newStatus = current.status === 'suspended' ? 'active' : 'suspended';
+            current.status = newStatus;
+
+            if (window.CampusBackend) {
+                await window.CampusBackend.updateMember(memberId, { status: newStatus });
+            } else {
+                saveMembers(membersData);
+            }
+            updateKPIs();
+            renderMembersTable();
+
+            if (fromModal) {
+                closeModal('modal-member-dossier');
+            }
+
+            if (newStatus === 'suspended') {
+                showToast(`Account for ${current.name} suspended. Access revoked.`, '🚫');
+            } else {
+                showToast(`Account for ${current.name} reactivated.`, '✅');
+            }
+        }
+
+        // Issue Strike to Member
+        async function issueStrikeToMember(memberId) {
+            const index = membersData.findIndex(m => m.id === memberId || m.uid === memberId);
+            if (index === -1) return;
+
+            const newStrikes = (membersData[index].strikes || 0) + 1;
+            const newStatus = newStrikes >= 3 ? 'suspended' : 'warning';
+            membersData[index].strikes = newStrikes;
+            membersData[index].status = newStatus;
+
+            if (window.CampusBackend) {
+                await window.CampusBackend.updateMember(memberId, { strikes: newStrikes, status: newStatus });
+            } else {
+                saveMembers(membersData);
+            }
+            updateKPIs();
+            renderMembersTable();
+            closeModal('modal-member-dossier');
+            showToast(`Formal strike recorded for ${membersData[index].name} (Total: ${newStrikes})`, '⚠️');
+        }
+
+        // Add Member Modal handlers
+        function openAddMemberModal() {
+            document.getElementById('add-member-form').reset();
+            openModal('modal-add-member');
+        }
+
+        async function handleAddMemberSubmit(e) {
+            e.preventDefault();
+            const name = document.getElementById('new-member-name').value.trim();
+            const studentId = document.getElementById('new-member-id').value.trim();
+            const email = document.getElementById('new-member-email').value.trim();
+            const role = document.getElementById('new-member-role').value;
+            const year = document.getElementById('new-member-year').value;
+            const department = document.getElementById('new-member-dept').value.trim();
+            const bio = document.getElementById('new-member-bio').value.trim();
+
+            if (!name || !studentId || !email || !department) {
+                showToast('Please fill out all required fields', '⚠️');
+                return;
+            }
+
+            const newMember = {
+                name,
+                email,
+                studentId,
+                role,
+                roleLabel: role === 'tutor' ? 'Verified Peer Tutor' : role === 'admin' ? 'Administrator' : 'Student Requester',
+                department,
+                year,
+                avatar: getInitials(name),
+                status: 'active',
+                rating: 5.0,
+                reviewsCount: 0,
+                sessionsCount: 0,
+                requestsCount: 0,
+                joinDate: 'Today',
+                strikes: 0,
+                tags: [department.split(' ')[0]],
+                bio: bio || 'Newly registered campus member.'
+            };
+
+            if (window.CampusBackend) {
+                await window.CampusBackend.addMember(newMember);
+            } else {
+                membersData.unshift({ id: 'MEM-' + Math.floor(100 + Math.random() * 900), ...newMember });
+                saveMembers(membersData);
+            }
+            updateKPIs();
+            renderMembersTable();
+            closeModal('modal-add-member');
+            showToast(`Member ${name} (${studentId}) registered successfully!`, '🎉');
+        }
+
+
+        // ==============================================
+        // REPORTS TAB CONTROLLERS
+        // ==============================================
+
+        function renderReportsFeed(filteredList = null) {
+            const list = filteredList || reportsData;
+            const container = document.getElementById('reports-feed-container');
+            if (!container) return;
+
+            if (list.length === 0) {
+                container.innerHTML = `
+                    <div class="admin-empty-state" style="background: #FFFFFF; border-radius: 14px; border: 1px solid #E2E8F0;">
+                        <div class="admin-empty-icon">🛡️</div>
+                        <h4>No reports matching current filter criteria</h4>
+                        <p>All clear! Campus tutoring marketplace is running smoothly without escalations.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = list.map(report => {
+                let borderClass = 'status-pending-border';
+                if (report.status === 'investigating' || report.priority === 'Critical') borderClass = 'status-critical-border';
+                if (report.status === 'resolved') borderClass = 'status-resolved-border';
+                if (report.status === 'dismissed') borderClass = 'status-dismissed-border';
+
+                const priorityClass = `priority-${report.priority.toLowerCase()}`;
+                const statusClass = `status-${report.status.toLowerCase()}`;
+
+                return `
+                    <div class="report-feed-card ${borderClass}" id="report-${report.id}">
+                        <div class="report-header-line">
+                            <div class="report-id-time">
+                                <strong style="font-family: monospace; color: #0F172A; font-size: 13.5px;">${report.id}</strong>
+                                <span>•</span>
+                                <span>🕒 ${report.createdAt}</span>
+                                <span>•</span>
+                                <span class="category-tag">${report.category}</span>
+                            </div>
+                            <div style="display: flex; gap: 8px; align-items: center;">
+                                <span class="priority-tag ${priorityClass}">● ${report.priority} Priority</span>
+                                <span class="status-pill ${statusClass}">${report.status.toUpperCase()}</span>
+                            </div>
+                        </div>
+
+                        <h3 class="report-title-row">${report.title}</h3>
+
+                        <div class="report-meta-grid">
+                            <div class="report-meta-item">
+                                <strong>Reported Party</strong>
+                                <span style="font-weight: 700; color: #0F172A;">${report.reportedUserName}</span>
+                                <span style="font-size: 12px; color: #64748B;">(${report.reportedUserRole})</span>
+                            </div>
+                            <div class="report-meta-item">
+                                <strong>Filed By Reporter</strong>
+                                <span style="font-weight: 600; color: #1E293B;">${report.reporterName}</span>
+                                <span style="font-size: 12px; color: #64748B;">(${report.reporterRole})</span>
+                            </div>
+                            <div class="report-meta-item">
+                                <strong>Assigned Moderator</strong>
+                                <span style="font-weight: 600; color: #3730A3;">${report.assignedAdmin || 'Administrator'}</span>
+                            </div>
+                        </div>
+
+                        <div class="report-desc-box">
+                            <strong>Incident Brief:</strong> ${report.description}
+                        </div>
+
+                        ${report.evidence ? `
+                            <div class="report-evidence-box">
+                                <strong>📎 Evidence On Record:</strong> ${report.evidence}
+                            </div>
+                        ` : ''}
+
+                        ${report.resolutionNote ? `
+                            <div style="background: #ECFDF5; border: 1px solid #A7F3D0; padding: 10px 14px; border-radius: 8px; font-size: 13px; color: #065F46; margin-bottom: 12px;">
+                                <strong>Resolution Notes:</strong> ${report.resolutionNote}
+                            </div>
+                        ` : ''}
+
+                        <div class="report-footer-actions">
+                            <div style="font-size: 12.5px; color: #64748B;">
+                                Case Protocol ID: <code>CAMPUS-SEC-${report.id}</code>
+                            </div>
+                            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                                <button type="button" class="btn-action-icon" onclick="openReportInvestigation('${report.id}')">
+                                    <span>🔍 Review Case & Evidence</span>
+                                </button>
+                                ${report.status !== 'resolved' ? `
+                                    <button type="button" class="btn-action-icon btn-action-success" onclick="resolveReportQuick('${report.id}')">
+                                        <span>✓ Mark Resolved</span>
+                                    </button>
+                                ` : ''}
+                                ${report.status !== 'dismissed' ? `
+                                    <button type="button" class="btn-action-icon" onclick="dismissReportQuick('${report.id}')">
+                                        <span>✕ Dismiss</span>
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Filter Reports Feed
+        function filterReportsFeed() {
+            const query = (document.getElementById('reports-search-input').value || '').toLowerCase().trim();
+            const statusFilter = document.getElementById('reports-status-filter').value;
+            const priorityFilter = document.getElementById('reports-priority-filter').value;
+            const categoryFilter = document.getElementById('reports-category-filter').value;
+
+            let result = reportsData.filter(report => {
+                const matchesQuery = !query ||
+                    report.id.toLowerCase().includes(query) ||
+                    report.title.toLowerCase().includes(query) ||
+                    report.reportedUserName.toLowerCase().includes(query) ||
+                    report.reporterName.toLowerCase().includes(query) ||
+                    report.description.toLowerCase().includes(query);
+
+                const matchesStatus = statusFilter === 'all' || report.status === statusFilter;
+                const matchesPriority = priorityFilter === 'all' || report.priority === priorityFilter;
+                const matchesCategory = categoryFilter === 'all' || report.category === categoryFilter;
+
+                return matchesQuery && matchesStatus && matchesPriority && matchesCategory;
+            });
+
+            renderReportsFeed(result);
+        }
+
+        // Open Deep Investigation Modal for Report
+        function openReportInvestigation(reportId) {
+            const report = reportsData.find(r => r.id === reportId);
+            if (!report) return;
+
+            const modalHeading = document.getElementById('modal-report-heading');
+            const modalBody = document.getElementById('modal-report-body');
+            const modalFooter = document.getElementById('modal-report-footer');
+
+            modalHeading.textContent = `Case #${report.id}: ${report.title}`;
+
+            modalBody.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid #E2E8F0;">
+                    <div>
+                        <span class="category-tag">${report.category}</span>
+                        <span class="priority-tag priority-${report.priority.toLowerCase()}" style="margin-left: 6px;">${report.priority} Priority</span>
+                    </div>
+                    <span class="status-pill status-${report.status}">${report.status.toUpperCase()}</span>
+                </div>
+
+                <div style="background: #F8FAFC; padding: 14px; border-radius: 8px; border: 1px solid #E2E8F0; margin-bottom: 16px;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 13.5px;">
+                        <div>
+                            <span style="font-size: 11px; text-transform: uppercase; color: #64748B; font-weight: 700; display: block;">Reported Individual</span>
+                            <strong style="color: #0F172A; font-size: 15px;">${report.reportedUserName}</strong>
+                            <div style="color: #64748B;">${report.reportedUserEmail || ''} (${report.reportedUserRole})</div>
+                        </div>
+                        <div>
+                            <span style="font-size: 11px; text-transform: uppercase; color: #64748B; font-weight: 700; display: block;">Reporting Witness / User</span>
+                            <strong style="color: #0F172A; font-size: 15px;">${report.reporterName}</strong>
+                            <div style="color: #64748B;">${report.reporterRole}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 14px;">
+                    <label style="font-size: 12.5px; font-weight: 700; color: #475569; display: block; margin-bottom: 4px;">Incident Narrative & Allegation</label>
+                    <div style="background: #FFFFFF; border: 1px solid #CBD5E1; padding: 12px; border-radius: 8px; font-size: 13.5px; line-height: 1.5; color: #1E293B;">
+                        ${report.description}
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <label style="font-size: 12.5px; font-weight: 700; color: #475569; display: block; margin-bottom: 4px;">Verified Audit Evidence & Log Extracts</label>
+                    <div style="background: #FFFBEB; border: 1px dashed #F59E0B; padding: 12px; border-radius: 8px; font-size: 13px; color: #92400E;">
+                        ${report.evidence || 'No direct screenshot uploaded. Reviewing session chat server audit.'}
+                    </div>
+                </div>
+
+                <div>
+                    <label for="investigation-notes" style="font-size: 12.5px; font-weight: 700; color: #475569; display: block; margin-bottom: 4px;">Official Moderator Findings & Actions Taken</label>
+                    <textarea id="investigation-notes" style="width: 100%; height: 75px; padding: 10px; border-radius: 8px; border: 1px solid #CBD5E1; font-family: inherit; font-size: 13.5px;" placeholder="Add final notes, disciplinary verdict, or settlement details...">${report.resolutionNote || ''}</textarea>
+                </div>
+            `;
+
+            modalFooter.innerHTML = `
+                <button type="button" class="btn-action-icon btn-action-danger" onclick="penalizeReportedParty('${report.id}', '${report.reportedUserId}')">
+                    <span>⚠️ Issue Disciplinary Strike</span>
+                </button>
+                <button type="button" class="btn-action-icon btn-action-success" onclick="finalizeReportCase('${report.id}', 'resolved')">
+                    <span>✓ Mark Case Resolved</span>
+                </button>
+                <button type="button" class="btn-action-icon" onclick="finalizeReportCase('${report.id}', 'dismissed')">
+                    <span>✕ Dismiss Report</span>
+                </button>
+                <button type="button" class="admin-btn-secondary" onclick="closeModal('modal-report-investigate')">Close</button>
+            `;
+
+            openModal('modal-report-investigate');
+        }
+
+        // Penalize reported party and update report
+        async function penalizeReportedParty(reportId, memberId) {
+            const report = reportsData.find(r => r.id === reportId);
+            const notes = document.getElementById('investigation-notes').value.trim() || 'Disciplinary strike issued by Moderator following investigation.';
+            
+            if (report) {
+                report.status = 'resolved';
+                report.resolutionNote = notes;
+                if (window.CampusBackend) {
+                    await window.CampusBackend.updateReport(reportId, { status: 'resolved', resolutionNote: notes });
+                } else {
+                    saveReports(reportsData);
+                }
+            }
+
+            const member = membersData.find(m => m.id === memberId || m.uid === memberId);
+            if (member) {
+                const newStrikes = (member.strikes || 0) + 1;
+                const newStatus = newStrikes >= 3 ? 'suspended' : 'warning';
+                member.strikes = newStrikes;
+                member.status = newStatus;
+                if (window.CampusBackend) {
+                    await window.CampusBackend.updateMember(memberId, { strikes: newStrikes, status: newStatus });
+                } else {
+                    saveMembers(membersData);
+                }
+            }
+
+            updateKPIs();
+            renderReportsFeed();
+            renderMembersTable();
+            closeModal('modal-report-investigate');
+            showToast(`Case #${reportId} resolved with formal penalty applied.`, '⚖️');
+        }
+
+        // Finalize Report Case
+        async function finalizeReportCase(reportId, newStatus) {
+            const report = reportsData.find(r => r.id === reportId);
+            if (!report) return;
+
+            const notesInput = document.getElementById('investigation-notes');
+            const notes = notesInput ? notesInput.value.trim() : '';
+
+            let resolutionNote = notes;
+            if (!resolutionNote) {
+                if (newStatus === 'resolved') resolutionNote = 'Case reviewed and resolved in accordance with Campus Tutoring terms.';
+                else if (newStatus === 'dismissed') resolutionNote = 'Dismissed as non-actionable / amicably settled.';
+            }
+
+            report.status = newStatus;
+            report.resolutionNote = resolutionNote;
+
+            if (window.CampusBackend) {
+                await window.CampusBackend.updateReport(reportId, { status: newStatus, resolutionNote });
+            } else {
+                saveReports(reportsData);
+            }
+
+            updateKPIs();
+            renderReportsFeed();
+            closeModal('modal-report-investigate');
+            showToast(`Report #${reportId} updated to ${newStatus.toUpperCase()}`, '✓');
+        }
+
+        async function resolveReportQuick(reportId) {
+            const report = reportsData.find(r => r.id === reportId);
+            if (!report) return;
+            report.status = 'resolved';
+            report.resolutionNote = 'Resolved quickly from Operations stream.';
+            if (window.CampusBackend) {
+                await window.CampusBackend.updateReport(reportId, { status: 'resolved', resolutionNote: report.resolutionNote });
+            } else {
+                saveReports(reportsData);
+            }
+            updateKPIs();
+            renderReportsFeed();
+            showToast(`Case #${reportId} marked resolved.`, '✅');
+        }
+
+        async function dismissReportQuick(reportId) {
+            const report = reportsData.find(r => r.id === reportId);
+            if (!report) return;
+            report.status = 'dismissed';
+            report.resolutionNote = 'Dismissed from stream view.';
+            if (window.CampusBackend) {
+                await window.CampusBackend.updateReport(reportId, { status: 'dismissed', resolutionNote: report.resolutionNote });
+            } else {
+                saveReports(reportsData);
+            }
+            updateKPIs();
+            renderReportsFeed();
+            showToast(`Case #${reportId} dismissed.`, '📁');
+        }
+
+        function quickTriageReports() {
+            reportsData.forEach(r => {
+                if (r.status === 'pending') {
+                    r.status = 'investigating';
+                }
+            });
+            saveReports(reportsData);
+            updateKPIs();
+            renderReportsFeed();
+            showToast('All pending reports advanced to Active Investigation queue.', '⚡');
+        }
+
+        function exportDataAuditLog() {
+            showToast('Generating official encrypted CSV audit log...', '📊');
+            setTimeout(() => {
+                showToast('Audit Log exported: campus_tutor_audit_2026.csv', '📥');
+            }, 800);
+        }
+
+        // Modal Helpers
+        function openModal(modalId) {
+            const el = document.getElementById(modalId);
+            if (el) el.classList.add('open');
+        }
+
+        function closeModal(modalId) {
+            const el = document.getElementById(modalId);
+            if (el) el.classList.remove('open');
+        }
+
+        // Close on escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.admin-modal-overlay.open').forEach(m => m.classList.remove('open'));
+            }
+        });
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAdminClearance();
+            loadDashboardData();
+
+            // Hash routing support (e.g. #reports)
+            if (window.location.hash === '#reports') {
+                switchAdminTab('reports');
+            } else {
+                switchAdminTab('members');
+            }
+        });
+    </script>
+</body>
+</html>

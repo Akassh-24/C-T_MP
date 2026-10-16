@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Browse Requests - Campus-Tutor</title>
+    <link rel="stylesheet" href="stylee.css">
+</head>
+<body>
+    <header class="site-header">
+        <div class="title"><a href="index.html"><h1>Campus-Tutor</h1></a></div>
+        <nav>
+            <a href="index.html">Home</a>
+            <a href="browse.html" class="active">Browse Requests</a>
+            <a href="postrequest.html">Post a Request</a>
+            <a href="profile.html">My Profile</a>
+            <a href="login.html" class="nav-login-btn">Sign In</a>
+        </nav>
+    </header>
+
+    <main class="main-container">
+        <div class="search-filter-bar">
+            <div class="search-input-wrapper">
+                <div class="search-box-container">
+                    <span class="search-icon">🔍</span>
+                    <input 
+                        type="text" 
+                        id="search-input" 
+                        class="search-input" 
+                        placeholder="Search by topic, subject, course code, or keywords (e.g. Calculus, Computer Science, Physics)..."
+                        aria-label="Search Tutoring Requests"
+                    >
+                    <button type="button" id="clear-search-btn" class="clear-search-btn" aria-label="Clear search text" style="display: none;">✕</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="requests-grid" id="requests-grid">
+        </div>
+    </main>
+
+    <div class="modal-overlay" id="offer-modal">
+        <div class="modal-content">
+            <button class="modal-close" id="modal-close-btn" aria-label="Close modal">&times;</button>
+            <span class="card-label">Offer Tutoring</span>
+            <h3 id="modal-request-title" style="color: var(--primary-navy); margin: 6px 0 15px; font-size: 20px;">CS201: Binary Trees</h3>
+            <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 20px;">
+                Send a quick message to <strong id="modal-requester-name">Alex</strong> proposing your availability and peer tutoring rate.
+            </p>
+
+            <form id="offer-form">
+                <input type="hidden" id="modal-req-id">
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label for="tutor-name">Your Full Name</label>
+                    <input type="text" id="tutor-name" required placeholder="e.g. Maya Chen (Senior CS)">
+                </div>
+
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label for="tutor-contact">Your Campus Email / Discord / Phone</label>
+                    <input type="text" id="tutor-contact" required placeholder="e.g. maya.c@campus.edu or @mayac_tutoring">
+                </div>
+
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label for="tutor-message">Intro Message & Availability</label>
+                    <textarea id="tutor-message" rows="3" required placeholder="Hi! I took this course last semester and received an A. I am free Tuesdays and Thursdays at the campus library..."></textarea>
+                </div>
+
+                <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                    <button type="button" class="butt butt-post butt-sm" id="cancel-offer-btn" style="color: var(--primary-navy); border-color: var(--border-color);">Cancel</button>
+                    <button type="submit" class="butt butt-browse butt-sm">Send Proposal</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 Campus-Tutor. Connecting campus minds for peer academic success.</p>
+    </footer>
+
+    <!-- Firebase Backend SDK & Core Scripts -->
+    <script type="module" src="firebase-backend.js"></script>
+    <script src="app.js"></script>
+    <script>
+        let searchQuery = "";
+        let liveRequests = [];
+
+        const requestsGrid = document.getElementById("requests-grid");
+        const searchInput = document.getElementById("search-input");
+        const clearSearchBtn = document.getElementById("clear-search-btn");
+
+        const offerModal = document.getElementById("offer-modal");
+        const modalCloseBtn = document.getElementById("modal-close-btn");
+        const cancelOfferBtn = document.getElementById("cancel-offer-btn");
+        const offerForm = document.getElementById("offer-form");
+        const modalReqTitle = document.getElementById("modal-request-title");
+        const modalRequesterName = document.getElementById("modal-requester-name");
+        const modalReqId = document.getElementById("modal-req-id");
+
+        function renderRequests() {
+            let requests = [...liveRequests];
+
+            if (searchQuery.trim() !== "") {
+                const query = searchQuery.toLowerCase().trim();
+                requests = requests.filter(r => 
+                    (r.title && r.title.toLowerCase().includes(query)) ||
+                    (r.subject && r.subject.toLowerCase().includes(query)) ||
+                    (r.description && r.description.toLowerCase().includes(query)) ||
+                    (r.requesterName && r.requesterName.toLowerCase().includes(query)) ||
+                    (r.mode && r.mode.toLowerCase().includes(query)) ||
+                    (r.urgency && r.urgency.toLowerCase().includes(query))
+                );
+            }
+
+            requests.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+            if (requests.length === 0) {
+                const queryDisplay = searchQuery.trim() ? ` matching "${escapeQuotes(searchQuery.trim())}"` : '';
+                requestsGrid.innerHTML = `
+                    <div class="empty-state">
+                        <span style="font-size: 36px;">🔍</span>
+                        <h3>No Tutoring Requests Found</h3>
+                        <p>We couldn't find any listings${queryDisplay}. Try another keyword or be the first to post!</p>
+                        <a href="postrequest.html" class="butt butt-browse butt-sm">Post a Request</a>
+                    </div>
+                `;
+                return;
+            }
+
+            requestsGrid.innerHTML = requests.map(req => `
+                <div class="request-card">
+                    <div>
+                        <div class="request-header">
+                            <span class="subject-tag">${req.subject || 'Academics'}</span>
+                            <span class="budget-badge">${req.budget}</span>
+                        </div>
+
+                        <h3 class="request-title">${req.title}</h3>
+                        <p class="request-desc">${req.description}</p>
+
+                        <div class="request-meta">
+                            <span class="meta-chip">📍 ${req.mode || 'Flexible'}</span>
+                            <span class="meta-chip ${req.isUrgent ? 'urgent' : ''}">
+                                ${req.isUrgent ? '⚡ ' : '🕒 '}${req.urgency || 'This Week'}
+                            </span>
+                            ${req.offersCount ? `<span class="meta-chip" style="color: #2563EB; background: #EFF6FF;">💬 ${req.offersCount} proposal${req.offersCount > 1 ? 's' : ''}</span>` : ''}
+                        </div>
+                    </div>
+
+                    <div class="request-footer">
+                        <div class="requester-info">
+                            <div class="requester-avatar">${getInitials(req.requesterName)}</div>
+                            <div class="requester-details">
+                                <span class="requester-name">${req.requesterName}</span>
+                                <span class="requester-year">${req.requesterYear || 'Campus Student'}</span>
+                            </div>
+                        </div>
+                        <div class="request-card-actions">
+                            <button type="button" class="btn-report-request" title="Report this request or requester" onclick="triggerReportRequest('${req.id}', '${escapeQuotes(req.title)}', '${escapeQuotes(req.requesterName)}', '${escapeQuotes(req.requesterEmail || '')}', '${escapeQuotes(req.requesterId || '')}')">
+                                🚩 Report
+                            </button>
+                            <button class="butt butt-browse butt-sm" onclick="openOfferModal('${req.id}', '${escapeQuotes(req.title)}', '${escapeQuotes(req.requesterName)}')">
+                                Offer Help
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join("");
+        }
+
+        function escapeQuotes(str) {
+            return (str || '').replace(/'/g, "\\'");
+        }
+
+        window.triggerReportRequest = function(id, title, requesterName, requesterEmail, requesterId) {
+            if (!isUserLoggedIn()) {
+                openAuthGateModal("browse.html", "Please sign in or create an account before filing a report.");
+                return;
+            }
+            openReportModal({
+                reportedUserId: requesterId,
+                reportedUserName: requesterName,
+                reportedUserEmail: requesterEmail,
+                reportedUserRole: 'Student Requester',
+                requestId: id,
+                requestTitle: title,
+                contextType: 'request'
+            });
+        };
+
+        window.openOfferModal = function(id, title, requester) {
+            if (!isUserLoggedIn()) {
+                openAuthGateModal("browse.html", "Please sign in or create an account before sending tutoring proposals.");
+                return;
+            }
+
+            modalReqId.value = id;
+            modalReqTitle.textContent = title;
+            modalRequesterName.textContent = requester;
+
+            // Autofill tutor information if logged in
+            const currentUser = (window.CampusBackend && window.CampusBackend.getCurrentUser()) || getCurrentUser();
+            if (currentUser) {
+                const nameInput = document.getElementById("tutor-name");
+                const contactInput = document.getElementById("tutor-contact");
+                if (nameInput && !nameInput.value) nameInput.value = currentUser.name || "";
+                if (contactInput && !contactInput.value) contactInput.value = currentUser.email || "";
+            }
+
+            offerModal.classList.add("active");
+        };
+
+        function closeModal() {
+            offerModal.classList.remove("active");
+            offerForm.reset();
+        }
+
+        modalCloseBtn.addEventListener("click", closeModal);
+        cancelOfferBtn.addEventListener("click", closeModal);
+        offerModal.addEventListener("click", (e) => {
+            if (e.target === offerModal) closeModal();
+        });
+
+        // Submit offer proposal to Backend / Firestore
+        offerForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const tutorName = document.getElementById("tutor-name").value.trim();
+            const tutorContact = document.getElementById("tutor-contact").value.trim();
+            const message = document.getElementById("tutor-message").value.trim();
+            const reqId = modalReqId.value;
+            const reqTitle = modalReqTitle.textContent;
+            const requester = modalRequesterName.textContent;
+
+            closeModal();
+
+            const offerData = {
+                requestId: reqId,
+                requestTitle: reqTitle,
+                tutorName: tutorName,
+                tutorContact: tutorContact,
+                message: message
+            };
+
+            let sentSuccess = false;
+
+            // 1. Try Backend REST API
+            try {
+                const res = await fetch('/api/offers', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(offerData)
+                });
+                if (res.ok) {
+                    sentSuccess = true;
+                }
+            } catch (_) {}
+
+            // 2. Try Firebase / Local Backend
+            if (!sentSuccess) {
+                try {
+                    if (window.CampusBackend) {
+                        await window.CampusBackend.submitOffer(offerData);
+                        sentSuccess = true;
+                    }
+                } catch (err) {
+                    console.error("Local offer submit error:", err);
+                }
+            }
+
+            // 3. Immediately reflect in local notifications so user sees it in nav
+            addNotification({
+                type: 'proposal_sent',
+                title: 'Tutoring Proposal Sent ✉️',
+                message: `You submitted an offer for "${reqTitle}" to ${requester}.`,
+                requestId: reqId,
+                requestTitle: reqTitle,
+                timestamp: Date.now()
+            });
+
+            // Update UI count on card
+            const targetReq = liveRequests.find(r => r.id === reqId);
+            if (targetReq) {
+                targetReq.offersCount = (targetReq.offersCount || 0) + 1;
+                renderRequests();
+            }
+
+            showToast(`Proposal sent for "${reqTitle}"! ${requester} will be notified.`, '✉️');
+        });
+
+        searchInput.addEventListener("input", (e) => {
+            searchQuery = e.target.value;
+            if (clearSearchBtn) {
+                clearSearchBtn.style.display = searchQuery ? "flex" : "none";
+            }
+            renderRequests();
+        });
+
+        if (clearSearchBtn) {
+            clearSearchBtn.addEventListener("click", () => {
+                searchInput.value = "";
+                searchQuery = "";
+                clearSearchBtn.style.display = "none";
+                searchInput.focus();
+                renderRequests();
+            });
+        }
+
+        // Initialize Real-time & API Request Loader
+        async function loadAllRequests() {
+            try {
+                const res = await fetch('/api/requests');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (Array.isArray(data) && data.length > 0) {
+                        liveRequests = data;
+                        renderRequests();
+                        return;
+                    }
+                }
+            } catch (_) {}
+
+            if (window.CampusBackend && typeof window.CampusBackend.subscribeRequests === 'function') {
+                window.CampusBackend.subscribeRequests((requests) => {
+                    liveRequests = requests;
+                    renderRequests();
+                });
+            } else {
+                liveRequests = getStoredRequests();
+                renderRequests();
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            loadAllRequests();
+        });
+    </script>
+</body>
+</html>

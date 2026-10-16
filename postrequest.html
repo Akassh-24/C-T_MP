@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Post a Request - Campus-Tutor</title>
+    <link rel="stylesheet" href="stylee.css">
+</head>
+<body>
+    <header class="site-header">
+        <div class="title"><a href="index.html"><h1>Campus-Tutor</h1></a></div>
+        <nav>
+            <a href="index.html">Home</a>
+            <a href="browse.html">Browse Requests</a>
+            <a href="postrequest.html" class="active">Post a Request</a>
+            <a href="profile.html">My Profile</a>
+            <a href="login.html" class="nav-login-btn">Sign In</a>
+        </nav>
+    </header>
+
+    <main class="main-container">
+        <div class="post-layout-single">
+            <div class="form-card">
+                <h2>Create Your Tutoring Request</h2>
+                <p class="subtitle">Complete the details below to publish your request to the campus tutor board.</p>
+
+                <form id="create-request-form">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="req-name">Your Full Name *</label>
+                            <input type="text" id="req-name" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="req-email">Campus Email *</label>
+                            <input type="email" id="req-email" required>
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label for="req-year">Major & Academic Standing *</label>
+                            <input type="text" id="req-year" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="req-subject">Subject Category *</label>
+                            <select id="req-subject" required>
+                                <option value="" disabled selected>Select a subject...</option>
+                                <option value="Computer Science">Computer Science</option>
+                                <option value="Mathematics">Mathematics</option>
+                                <option value="Physics">Physics</option>
+                                <option value="Chemistry">Chemistry</option>
+                                <option value="Economics">Economics</option>
+                                <option value="Engineering">Engineering</option>
+                                <option value="Biology">Biology</option>
+                                <option value="Other">Other / Humanities</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="req-title">Course Code & Topic *</label>
+                            <input type="text" id="req-title" required>
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label for="req-desc">Detailed Description of Help Needed *</label>
+                            <textarea 
+                                id="req-desc" 
+                                required
+                            ></textarea>
+                            <span class="hint">Be as specific as possible to get faster and more tailored tutor responses.</span>
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label>Budget / Compensation *</label>
+                            <div class="radio-pill-group">
+                                <label class="radio-pill-label checked" id="label-hourly">
+                                    <input type="radio" name="budget-type" value="hourly" checked> Hourly Rate (₹/hr)
+                                </label>
+                                <label class="radio-pill-label" id="label-fixed">
+                                    <input type="radio" name="budget-type" value="fixed"> Fixed Project Budget (₹ flat)
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="req-budget-amount" id="budget-amount-label">Budget Amount (₹ INR) *</label>
+                            <input type="number" id="req-budget-amount" min="1" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="req-mode">Preferred Meeting Mode *</label>
+                            <select id="req-mode" required>
+                                <option value="In-Person (Campus Library)">In-Person (Campus Library)</option>
+                                <option value="In-Person (Student Center/Lab)">In-Person (Student Center / Lab)</option>
+                                <option value="Online (Zoom / Meet)">Online (Zoom / Meet)</option>
+                                <option value="Hybrid (Flexible)">Hybrid (Flexible)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label for="req-urgency">Timeline / Urgency *</label>
+                            <select id="req-urgency" required>
+                                <option value="Urgent (Exam in 2-3 Days)">⚡ Urgent (Exam / Assignment due in 2-3 days)</option>
+                                <option value="This Week" selected>🕒 This Week</option>
+                                <option value="Next Week">📅 Next Week</option>
+                                <option value="Flexible Schedule">🌱 Flexible Ongoing Help</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 30px; display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+                        <button type="submit" class="butt butt-browse" id="submit-btn">
+                            Publish Tutoring Request
+                        </button>
+                        <button type="reset" class="butt butt-post" style="color: var(--primary-navy); border-color: var(--border-color);">
+                            Reset Form
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 Campus-Tutor. Connecting campus minds for peer academic success.</p>
+    </footer>
+
+    <!-- Firebase Backend SDK & Core Scripts -->
+    <script type="module" src="firebase-backend.js"></script>
+    <script src="app.js"></script>
+    <script>
+        const form = document.getElementById("create-request-form");
+        const hourlyRadio = document.querySelector('input[name="budget-type"][value="hourly"]');
+        const fixedRadio = document.querySelector('input[name="budget-type"][value="fixed"]');
+        const labelHourly = document.getElementById("label-hourly");
+        const labelFixed = document.getElementById("label-fixed");
+        const budgetAmountLabel = document.getElementById("budget-amount-label");
+
+        // Autofill with logged-in user profile if available
+        document.addEventListener("DOMContentLoaded", () => {
+            const user = (window.CampusBackend && window.CampusBackend.getCurrentUser()) || getCurrentUser();
+            if (user) {
+                if (user.name) document.getElementById("req-name").value = user.name;
+                if (user.email) document.getElementById("req-email").value = user.email;
+                if (user.department || user.year) {
+                    const standing = [user.year, user.department].filter(Boolean).join(" • ");
+                    document.getElementById("req-year").value = standing || user.department || "";
+                }
+            }
+        });
+
+        document.querySelectorAll('input[name="budget-type"]').forEach(radio => {
+            radio.addEventListener("change", () => {
+                if (hourlyRadio.checked) {
+                    labelHourly.classList.add("checked");
+                    labelFixed.classList.remove("checked");
+                    budgetAmountLabel.textContent = "Hourly Rate (₹ INR / hr) *";
+                } else {
+                    labelFixed.classList.add("checked");
+                    labelHourly.classList.remove("checked");
+                    budgetAmountLabel.textContent = "Total Fixed Budget (₹ INR flat) *";
+                }
+            });
+        });
+
+        // Form Submit Handler -> Firestore createRequest
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const submitBtn = document.getElementById("submit-btn");
+
+            const name = document.getElementById("req-name").value.trim();
+            const email = document.getElementById("req-email").value.trim();
+            const year = document.getElementById("req-year").value.trim();
+            const subject = document.getElementById("req-subject").value;
+            const title = document.getElementById("req-title").value.trim();
+            const description = document.getElementById("req-desc").value.trim();
+            const budgetType = document.querySelector('input[name="budget-type"]:checked').value;
+            const budgetAmount = parseFloat(document.getElementById("req-budget-amount").value);
+            const mode = document.getElementById("req-mode").value;
+            const urgency = document.getElementById("req-urgency").value;
+
+            const isUrgent = urgency.includes("Urgent");
+            const formattedBudget = budgetType === "hourly" ? `₹${budgetAmount} / hr` : `₹${budgetAmount} flat`;
+
+            const requestPayload = {
+                title: title,
+                subject: subject,
+                requesterName: name,
+                requesterYear: year,
+                requesterEmail: email,
+                budget: formattedBudget,
+                budgetAmount: budgetAmount,
+                budgetType: budgetType,
+                mode: mode,
+                urgency: urgency.replace(/^[⚡🕒📅🌱]\s*/, ''),
+                isUrgent: isUrgent,
+                description: description,
+                createdAt: "Just now",
+                timestamp: Date.now()
+            };
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = "Publishing Request...";
+
+            let publishedReq = null;
+
+            // 1. Try Backend REST API
+            try {
+                const res = await fetch('/api/requests', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestPayload)
+                });
+                if (res.ok) {
+                    publishedReq = await res.json();
+                }
+            } catch (_) {}
+
+            // 2. Try Firebase / Local storage
+            if (!publishedReq) {
+                try {
+                    if (window.CampusBackend) {
+                        publishedReq = await window.CampusBackend.createRequest(requestPayload);
+                    } else {
+                        publishedReq = { id: "req-" + Date.now(), ...requestPayload };
+                        saveRequest(publishedReq);
+                    }
+                } catch (err) {
+                    console.error("Failed to publish request:", err);
+                }
+            }
+
+            if (publishedReq) {
+                // Add notification so it is reflected in the Notification navigation menu!
+                addNotification({
+                    type: 'request_sent',
+                    title: 'Tutoring Request Published 🚀',
+                    message: `Your request "${title}" was published to the campus board. Qualified tutors can now send proposals.`,
+                    requestId: publishedReq.id,
+                    requestTitle: title,
+                    timestamp: Date.now()
+                });
+
+                showToast("Your request has been published to the marketplace!", "✨");
+                setTimeout(() => {
+                    window.location.href = "browse.html";
+                }, 800);
+            } else {
+                showToast("Failed to publish request. Please try again.", "⚠️");
+                submitBtn.disabled = false;
+                submitBtn.textContent = "Publish Tutoring Request";
+            }
+        });
+    </script>
+</body>
+</html>

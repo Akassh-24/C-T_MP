@@ -1,0 +1,57 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+        (request.auth.token.admin == true || 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
+    }
+
+    // Users Collection
+    match /users/{userId} {
+      // Any authenticated user can read profiles
+      allow read: if isAuthenticated();
+      // Users can register their own profile; Admins can update any user status
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Requests Collection (Tutoring Marketplace Listings)
+    match /requests/{requestId} {
+      // Open read access for students browsing academic help
+      allow read: if true;
+      // Authenticated users can create requests
+      allow create: if isAuthenticated();
+      // Requester can edit/delete their own request; Admins can moderate
+      allow update, delete: if (isAuthenticated() && resource.data.requesterId == request.auth.uid) || isAdmin();
+    }
+
+    // Offers Collection (Tutor Proposals)
+    match /offers/{offerId} {
+      allow read: if isAuthenticated() && 
+        (resource.data.tutorId == request.auth.uid || 
+         resource.data.requesterId == request.auth.uid || 
+         isAdmin());
+      allow create: if isAuthenticated();
+      allow update, delete: if (isAuthenticated() && resource.data.tutorId == request.auth.uid) || isAdmin();
+    }
+
+    // Reports Collection (Operations & Safety)
+    match /reports/{reportId} {
+      allow read: if isAdmin();
+      allow create: if isAuthenticated();
+      allow update, delete: if isAdmin();
+    }
+  }
+}

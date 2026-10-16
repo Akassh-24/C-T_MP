@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile - Campus-Tutor</title>
+    <link rel="stylesheet" href="stylee.css">
+</head>
+<body>
+    <!-- Site Header -->
+    <header class="site-header">
+        <div class="title"><a href="index.html"><h1>Campus-Tutor</h1></a></div>
+        <nav>
+            <a href="index.html">Home</a>
+            <a href="browse.html">Browse Requests</a>
+            <a href="postrequest.html">Post a Request</a>
+            <a href="profile.html" class="active">My Profile</a>
+            <a href="login.html" class="nav-login-btn">Sign In</a>
+        </nav>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="main-container">
+        <!-- Profile Container: Loaded Dynamically -->
+        <div id="profile-dynamic-content" class="post-layout">
+            <div class="form-card" style="text-align: center; padding: 50px 20px;">
+                <div class="admin-pulse-dot" style="margin: 0 auto 12px; width: 14px; height: 14px;"></div>
+                <p style="color: var(--text-muted);">Loading student profile...</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Profile Edit Modal -->
+    <div class="admin-modal-overlay" id="modal-edit-profile">
+        <div class="admin-modal-card">
+            <div class="admin-modal-header">
+                <h3>✏️ Edit Student Profile</h3>
+                <button type="button" class="admin-modal-close-btn" onclick="closeEditModal()">&times;</button>
+            </div>
+            <form id="edit-profile-form" onsubmit="saveProfileChanges(event)">
+                <div class="admin-modal-body">
+                    <div class="input-group">
+                        <label for="edit-profile-name">Full Name</label>
+                        <div class="input-field-wrapper">
+                            <input type="text" id="edit-profile-name" required>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label for="edit-profile-dept">Academic Major / Department</label>
+                        <div class="input-field-wrapper">
+                            <input type="text" id="edit-profile-dept" required>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label for="edit-profile-year">Academic Standing</label>
+                        <div class="input-field-wrapper">
+                            <input type="text" id="edit-profile-year" placeholder="e.g. Junior (3rd Year)">
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label for="edit-profile-bio">Bio &amp; Academic Focus</label>
+                        <div class="input-field-wrapper">
+                            <textarea id="edit-profile-bio" rows="3" style="width: 100%; padding: 10px; border-radius: 8px; border: 1.5px solid #E2E8F0;"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="admin-modal-footer">
+                    <button type="button" class="admin-btn-secondary" onclick="closeEditModal()">Cancel</button>
+                    <button type="submit" class="admin-btn-primary">Save to Firestore</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <p>&copy; 2026 Campus-Tutor. Connecting campus minds for peer academic success.</p>
+    </footer>
+
+    <!-- Firebase Backend SDK & Core Scripts -->
+    <script type="module" src="firebase-backend.js"></script>
+    <script src="app.js"></script>
+    <script>
+        let currentProfileUser = null;
+
+        function loadUserProfile() {
+            const user = (window.CampusBackend && window.CampusBackend.getCurrentUser()) || getCurrentUser();
+            const container = document.getElementById("profile-dynamic-content");
+
+            if (!user) {
+                container.innerHTML = `
+                    <div class="form-card" style="text-align: center; padding: 60px 24px; max-width: 600px; margin: 0 auto; width: 100%;">
+                        <span style="font-size: 54px; display: block; margin-bottom: 12px;">🎓</span>
+                        <h2 style="margin: 0 0 10px;">Sign In to View Your Profile</h2>
+                        <p style="color: var(--text-muted); margin-bottom: 24px; font-size: 14.5px;">
+                            Access your active tutoring requests, proposals from verified peers, academic standing, and account rating.
+                        </p>
+                        <div style="display: flex; gap: 14px; justify-content: center; flex-wrap: wrap;">
+                            <a href="login.html" class="butt butt-browse">Sign In</a>
+                            <a href="login.html" class="butt butt-post" style="color: var(--primary-navy); border-color: var(--border-color);">Create Account</a>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            currentProfileUser = user;
+            const initials = user.avatar || getInitials(user.name);
+            const roleBadge = user.role === 'admin' 
+                ? `<span style="display: inline-block; margin-top: 6px; background: rgba(226, 160, 63, 0.2); color: #d97706; font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 4px;">🛡️ Administrator</span>`
+                : (user.role === 'tutor'
+                    ? `<span style="display: inline-block; margin-top: 6px; background: #EEF2FF; color: #4338CA; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 4px;">Verified Peer Tutor</span>`
+                    : `<span style="display: inline-block; margin-top: 6px; background: #ECFDF5; color: #065F46; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 4px;">Verified Student</span>`
+                );
+
+            // Fetch user requests & completed sessions concurrently
+            Promise.all([fetchUserRequests(user), fetchUserSessions(user)]).then(([userRequests, userSessions]) => {
+                const requestsListHtml = userRequests.length > 0
+                    ? userRequests.map(r => `
+                        <div class="request-card" style="margin-bottom: 15px;">
+                            <div class="request-header">
+                                <span class="subject-tag">${r.subject || 'Academics'}</span>
+                                <span class="budget-badge">${r.budget}</span>
+                            </div>
+                            <h3 class="request-title" style="font-size: 17px;">${r.title}</h3>
+                            <p class="request-desc" style="font-size: 13.5px;">${r.description}</p>
+                            <div class="request-meta" style="margin-top: 10px;">
+                                <span class="meta-chip">📍 ${r.mode || 'Flexible'}</span>
+                                <span class="meta-chip">🕒 ${r.urgency || 'This Week'}</span>
+                                ${r.offersCount ? `<span class="meta-chip" style="color: #2563EB; background: #EFF6FF;">💬 ${r.offersCount} proposal(s)</span>` : ''}
+                            </div>
+                            <div class="request-footer" style="padding-top: 14px; margin-top: 12px; border-top: 1px solid #F1F5F9; display: flex; justify-content: space-between;">
+                                <a href="browse.html" class="butt butt-browse butt-sm">View on Board</a>
+                                <button type="button" class="btn-action-icon btn-action-danger" onclick="deleteUserRequest('${r.id}')">✕ Cancel Post</button>
+                            </div>
+                        </div>
+                    `).join("")
+                    : `
+                        <div style="background: #F8FAFC; border: 1.5px dashed #CBD5E1; border-radius: 12px; padding: 24px 20px; text-align: center;">
+                            <span style="font-size: 28px; display: block; margin-bottom: 6px;">📝</span>
+                            <h4 style="margin: 0 0 4px; color: #334155; font-size: 15px;">No Active Requests</h4>
+                            <p style="color: var(--text-muted); font-size: 13px; margin: 0 0 14px;">You haven't posted any help requests yet.</p>
+                            <a href="postrequest.html" class="butt butt-browse butt-sm">Post a Request Now</a>
+                        </div>
+                    `;
+
+                const sessionsListHtml = userSessions.length > 0
+                    ? `
+                        <div class="sessions-grid">
+                            ${userSessions.map(s => `
+                                <div class="session-item-card" id="session-${s.id}">
+                                    <div class="session-tutor-info">
+                                        <div class="session-tutor-avatar">${s.tutorAvatar || getInitials(s.tutorName)}</div>
+                                        <div class="session-details-block">
+                                            <h4>${s.subject || 'Peer Tutoring Session'}</h4>
+                                            <div class="session-meta-line">
+                                                <span>👨‍🏫 <strong>${s.tutorName}</strong> (${s.tutorDept || 'Verified Tutor'})</span>
+                                                <span>•</span>
+                                                <span>📅 ${s.date || 'Recent'}</span>
+                                                <span>•</span>
+                                                <span>⏱️ ${s.duration || '1 hr'}</span>
+                                                <span>•</span>
+                                                <span>💵 ${s.rate || '₹350/hr'}</span>
+                                            </div>
+                                            ${s.notes ? `<p style="margin: 6px 0 0; font-size: 12.5px; color: #64748B;"><em>"${s.notes}"</em></p>` : ''}
+                                        </div>
+                                    </div>
+                                    <div class="session-actions-block">
+                                        <span class="session-status-badge">✓ Completed</span>
+                                        <button type="button" class="btn-report-tutor" title="Report an issue with this tutor" onclick="triggerReportTutor('${s.id}', '${escapeQuotes(s.tutorName)}', '${escapeQuotes(s.tutorEmail || '')}', '${escapeQuotes(s.tutorId || '')}', '${escapeQuotes(s.subject || 'Session')}')">
+                                            🚩 Report Tutor
+                                        </button>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `
+                    : `
+                        <div style="background: #F8FAFC; border: 1.5px dashed #CBD5E1; border-radius: 12px; padding: 24px 20px; text-align: center;">
+                            <span style="font-size: 28px; display: block; margin-bottom: 6px;">🎓</span>
+                            <h4 style="margin: 0 0 4px; color: #334155; font-size: 15px;">No Completed Sessions Yet</h4>
+                            <p style="color: var(--text-muted); font-size: 13px; margin: 0;">Once your tutoring sessions are completed with peers, they will appear here with coaching receipts.</p>
+                        </div>
+                    `;
+
+                container.innerHTML = `
+                    <div class="form-card">
+                        <div style="display: flex; gap: 20px; align-items: center; margin-bottom: 25px; flex-wrap: wrap;">
+                            <div style="width: 72px; height: 72px; border-radius: 50%; background: var(--primary-navy); color: var(--accent-amber); display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 700; border: 3px solid var(--accent-amber); box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                                ${initials}
+                            </div>
+                            <div style="flex: 1; min-width: 200px;">
+                                <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 8px;">
+                                    <div>
+                                        <h2 style="margin: 0; font-size: 24px;">${user.name}</h2>
+                                        <p style="color: var(--text-muted); margin: 3px 0 0; font-size: 14px;">${user.email}</p>
+                                        <p style="color: #475569; margin: 3px 0 0; font-size: 13.5px; font-weight: 500;">
+                                            ${[user.year, user.department].filter(Boolean).join(" • ") || "Campus Scholar"}
+                                        </p>
+                                    </div>
+                                    <button type="button" class="btn-action-icon" onclick="openEditModal()">✏️ Edit Profile</button>
+                                </div>
+                                ${roleBadge}
+                            </div>
+                        </div>
+
+                        ${user.bio ? `<div style="background: #F8FAFC; padding: 12px 16px; border-radius: 10px; border-left: 3px solid var(--accent-amber); font-size: 13.5px; color: #475569; margin-bottom: 24px;">${user.bio}</div>` : ''}
+
+                        <!-- My Active Requests -->
+                        <div style="border-top: 1px solid var(--border-color); padding-top: 20px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                                <h3 style="color: var(--primary-navy); font-size: 18px; margin: 0;">My Active Requests (${userRequests.length})</h3>
+                                <a href="postrequest.html" class="butt butt-browse butt-sm">+ New Request</a>
+                            </div>
+                            ${requestsListHtml}
+                        </div>
+
+                        <!-- Completed Tutoring Sessions & Tutor Reporting -->
+                        <div class="completed-sessions-card">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <h3 style="color: var(--primary-navy); font-size: 18px; margin: 0; display: flex; align-items: center; gap: 8px;">
+                                    🎓 Completed Sessions (${userSessions.length})
+                                </h3>
+                            </div>
+                            <p style="font-size: 13.5px; color: var(--text-muted); margin: 0 0 16px;">
+                                History of past peer tutoring sessions. If there was any issue during a session (conduct, no-show, honor code, payment), click <strong>Report Tutor</strong> to notify campus moderators.
+                            </p>
+                            ${sessionsListHtml}
+                        </div>
+                    </div>
+
+                    <div class="side-cards">
+                        <div class="side-card">
+                            <span class="card-label">Overview</span>
+                            <h4>Account Activity</h4>
+                            <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 10px;">
+                                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #F3F4F6; padding-bottom: 8px;">
+                                    <span style="color: var(--text-muted); font-size: 14px;">Requests Posted</span>
+                                    <strong style="color: var(--primary-navy);">${userRequests.length}</strong>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #F3F4F6; padding-bottom: 8px;">
+                                    <span style="color: var(--text-muted); font-size: 14px;">Sessions Completed</span>
+                                    <strong style="color: var(--primary-navy);">${userSessions.length || user.sessionsCount || 3}</strong>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #F3F4F6; padding-bottom: 8px;">
+                                    <span style="color: var(--text-muted); font-size: 14px;">Peer Rating</span>
+                                    <strong style="color: #d97706;">★ ${user.rating || '4.9'} / 5.0</strong>
+                                </div>
+                                <div style="display: flex; justify-content: space-between;">
+                                    <span style="color: var(--text-muted); font-size: 14px;">Honor Code Status</span>
+                                    <strong style="color: #059669;">Good Standing (0 strikes)</strong>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="side-card">
+                            <span class="card-label">Quick Actions</span>
+                            <h4>Need More Help?</h4>
+                            <p style="font-size: 13.5px; color: var(--text-muted); margin-bottom: 15px;">Create a new request in under a minute and find top student tutors.</p>
+                            <a href="postrequest.html" class="butt butt-browse butt-sm" style="display: block; text-align: center; margin-bottom: 10px;">Post a Request</a>
+                            <button type="button" class="butt butt-post butt-sm" style="width: 100%; color: #DC2626; border-color: #FECACA; background: #FEF2F2;" onclick="logoutUser(event)">
+                                🚪 Sign Out of Account
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        async function fetchUserSessions(user) {
+            try {
+                const res = await fetch(`/api/sessions?email=${encodeURIComponent(user.email || '')}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (Array.isArray(data) && data.length > 0) return data;
+                }
+            } catch (_) {}
+
+            // Fallback default sample sessions
+            return [
+                {
+                    id: "sess-301",
+                    tutorId: "MEM-102",
+                    tutorName: "Maya Chen",
+                    tutorEmail: "maya.c@campus.edu",
+                    tutorAvatar: "MC",
+                    tutorDept: "Mathematics & Data Science",
+                    subject: "Discrete Mathematics & Graph Theory",
+                    date: "14 Oct 2026",
+                    duration: "1.5 hours",
+                    rate: "₹350/hr",
+                    notes: "Covered Dijkstra's algorithm, shortest path proofs, and topological sorting."
+                },
+                {
+                    id: "sess-302",
+                    tutorId: "MEM-104",
+                    tutorName: "Vikram Nair",
+                    tutorEmail: "vikram.n@campus.edu",
+                    tutorAvatar: "VN",
+                    tutorDept: "Computer Science & Engineering",
+                    subject: "CS301: Operating Systems & Virtual Memory",
+                    date: "10 Oct 2026",
+                    duration: "2 hours",
+                    rate: "₹400/hr",
+                    notes: "Page table walks, TLB caching, and segment fault resolution."
+                },
+                {
+                    id: "sess-303",
+                    tutorId: "MEM-105",
+                    tutorName: "Rohan Deshmukh",
+                    tutorEmail: "rohan.d@campus.edu",
+                    tutorAvatar: "RD",
+                    tutorDept: "Electrical Engineering",
+                    subject: "EE101: Digital Logic & Karnaugh Maps",
+                    date: "04 Oct 2026",
+                    duration: "1 hour",
+                    rate: "₹300/hr",
+                    notes: "Logic minimization using 4-variable K-maps."
+                }
+            ];
+        }
+
+        function triggerReportTutor(sessionId, tutorName, tutorEmail, tutorId, subject) {
+            openReportModal({
+                reportedUserId: tutorId || 'MEM-TUTOR',
+                reportedUserName: tutorName,
+                reportedUserEmail: tutorEmail,
+                reportedUserRole: 'Verified Peer Tutor',
+                sessionId: sessionId,
+                requestTitle: subject,
+                contextType: 'tutor'
+            });
+        }
+
+        async function fetchUserRequests(user) {
+            try {
+                if (window.CampusBackend) {
+                    const all = await window.CampusBackend.getRequests();
+                    return all.filter(r => 
+                        (user.uid && r.requesterId === user.uid) ||
+                        (user.email && r.requesterEmail && r.requesterEmail.toLowerCase() === user.email.toLowerCase()) ||
+                        (r.requesterName && user.name && r.requesterName.toLowerCase() === user.name.toLowerCase())
+                    );
+                }
+            } catch (e) {
+                console.warn("Could not query user requests:", e);
+            }
+            const local = getStoredRequests();
+            return local.filter(r => 
+                (user.email && r.requesterEmail === user.email) ||
+                (user.name && r.requesterName === user.name)
+            );
+        }
+
+        async function deleteUserRequest(reqId) {
+            if (!confirm("Are you sure you want to cancel and remove this request?")) return;
+            try {
+                if (window.CampusBackend) {
+                    await window.CampusBackend.deleteRequest(reqId);
+                }
+                showToast("Request cancelled successfully.", "✓");
+                loadUserProfile();
+            } catch (e) {
+                console.error("Delete failed:", e);
+                showToast("Failed to delete request.", "⚠️");
+            }
+        }
+
+        function openEditModal() {
+            if (!currentProfileUser) return;
+            document.getElementById("edit-profile-name").value = currentProfileUser.name || "";
+            document.getElementById("edit-profile-dept").value = currentProfileUser.department || "";
+            document.getElementById("edit-profile-year").value = currentProfileUser.year || "";
+            document.getElementById("edit-profile-bio").value = currentProfileUser.bio || "";
+            document.getElementById("modal-edit-profile").classList.add("open");
+        }
+
+        function closeEditModal() {
+            document.getElementById("modal-edit-profile").classList.remove("open");
+        }
+
+        async function saveProfileChanges(e) {
+            e.preventDefault();
+            const name = document.getElementById("edit-profile-name").value.trim();
+            const department = document.getElementById("edit-profile-dept").value.trim();
+            const year = document.getElementById("edit-profile-year").value.trim();
+            const bio = document.getElementById("edit-profile-bio").value.trim();
+
+            closeEditModal();
+
+            try {
+                if (window.CampusBackend) {
+                    await window.CampusBackend.updateUserProfile({ name, department, year, bio });
+                } else {
+                    const updated = { ...currentProfileUser, name, department, year, bio };
+                    localStorage.setItem("campus_tutor_user", JSON.stringify(updated));
+                }
+                showToast("Profile details updated successfully!", "✓");
+                loadUserProfile();
+            } catch (err) {
+                console.error("Failed to update profile:", err);
+                showToast("Could not save profile changes.", "⚠️");
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            // Re-render when auth state resolves
+            if (window.CampusBackend && typeof window.CampusBackend.onAuthChange === 'function') {
+                window.CampusBackend.onAuthChange(() => {
+                    loadUserProfile();
+                });
+            } else {
+                loadUserProfile();
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Campus-Tutor | Peer Academic Help Marketplace</title>
+    <meta name="description" content="Sign in or register for Campus-Tutor. Connect with student tutors or enter the admin moderation console.">
+    <link rel="stylesheet" href="stylee.css">
+</head>
+<body class="auth-page">
+    <!-- Header Navigation -->
+    <header class="site-header">
+        <div class="title"><a href="index.html"><h1>Campus-Tutor</h1></a></div>
+        <nav>
+            <a href="index.html">Home</a>
+            <a href="browse.html">Browse Requests</a>
+            <a href="postrequest.html">Post a Request</a>
+            <a href="profile.html">My Profile</a>
+            <a href="login.html" class="active nav-login-btn">Sign In</a>
+        </nav>
+    </header>
+
+    <!-- Main Login Area -->
+    <main class="auth-main-wrapper">
+        <!-- Ambient Glowing Background Elements -->
+        <div class="auth-bg-blob blob-1"></div>
+        <div class="auth-bg-blob blob-2"></div>
+        <div class="auth-bg-blob blob-3"></div>
+
+        <div class="auth-container">
+            <div class="auth-form-card" id="auth-form-card">
+                
+                <!-- Role Toggle Pill Switcher -->
+                <div class="role-toggle-container">
+                    <div class="role-toggle-wrapper" role="tablist" aria-label="Login Role Selector">
+                        <button 
+                            type="button" 
+                            class="role-toggle-btn active" 
+                            id="btn-role-student" 
+                            role="tab" 
+                            aria-selected="true" 
+                            aria-controls="student-form-wrapper"
+                            onclick="switchRole('student')"
+                        >
+                            <span class="toggle-icon">🎓</span>
+                            <span>Student Portal</span>
+                        </button>
+                        <button 
+                            type="button" 
+                            class="role-toggle-btn" 
+                            id="btn-role-admin" 
+                            role="tab" 
+                            aria-selected="false" 
+                            aria-controls="admin-form-wrapper"
+                            onclick="switchRole('admin')"
+                        >
+                            <span class="toggle-icon">🛡️</span>
+                            <span>Admin Portal</span>
+                        </button>
+                        <div class="role-slider" id="role-slider"></div>
+                    </div>
+                </div>
+
+                <!-- Form Header -->
+                <div class="form-header-box">
+                    <h3 id="form-heading">Welcome Back, Student!</h3>
+                    <p id="form-subheading">Sign in or register a new campus student account.</p>
+                </div>
+
+                <!-- Auth Error/Alert Notification Box -->
+                <div id="auth-alert-message" class="auth-alert-box" style="display: none;">
+                    <span id="auth-alert-icon">⚠️</span>
+                    <span id="auth-alert-text"></span>
+                </div>
+
+                <!-- ==============================================
+                     STUDENT SECTION (Sign In / Register)
+                     ============================================== -->
+                <div id="student-form-wrapper" class="form-mode-view active" role="tabpanel">
+                    
+                    <!-- Sub-Nav: Sign In vs Create Account -->
+                    <div class="auth-sub-nav">
+                        <button type="button" class="auth-sub-tab active" id="tab-sub-signin" onclick="switchStudentAuthMode('signin')">
+                            Sign In
+                        </button>
+                        <button type="button" class="auth-sub-tab" id="tab-sub-signup" onclick="switchStudentAuthMode('signup')">
+                            Create Account
+                        </button>
+                    </div>
+
+                    <!-- 1. STUDENT SIGN IN FORM -->
+                    <form id="student-login-form" onsubmit="handleStudentLogin(event)">
+                        <div class="input-group">
+                            <label for="student-email">Email <span class="required-star">*</span></label>
+                            <div class="input-field-wrapper">
+                                <input 
+                                    type="email" 
+                                    id="student-email" 
+                                    placeholder="e.g. xyz.@gmail.com"
+                                    required
+                                    autocomplete="username"
+                                >
+                            </div>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="student-password">Password <span class="required-star">*</span></label>
+                            <div class="input-field-wrapper">
+                                <input 
+                                    type="password" 
+                                    id="student-password" 
+                                    placeholder="Enter your password" 
+                                    required
+                                    autocomplete="current-password"
+                                >
+                                <button type="button" class="pwd-toggle-btn" onclick="togglePasswordVisibility('student-password', this)" aria-label="Toggle password visibility">
+                                    <span class="eye-icon">👁️</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="form-options">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="student-remember" checked>
+                                <span class="custom-checkbox"></span>
+                                <span>Remember my login</span>
+                            </label>
+                        </div>
+
+                        <button type="submit" class="auth-submit-btn student-btn" id="student-submit-btn">
+                            <span class="btn-text">Sign In</span>
+                            <span class="btn-spinner" style="display: none;"></span>
+                            <span class="btn-arrow">→</span>
+                        </button>
+
+                        <div class="auth-divider">
+                            <span>or continue with</span>
+                        </div>
+
+                        <!-- Google Sign-In Button -->
+                        <button type="button" class="google-auth-btn" id="btn-google-login" onclick="handleGoogleSignIn()">
+                            <svg class="google-icon" viewBox="0 0 24 24">
+                                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+                            </svg>
+                            <span>Sign In with Google</span>
+                        </button>
+                    </form>
+
+                    <!-- 2. STUDENT CREATE ACCOUNT FORM -->
+                    <form id="student-signup-form" onsubmit="handleStudentSignup(event)" style="display: none;">
+                        <div class="input-group">
+                            <label for="signup-name">Full Name <span class="required-star">*</span></label>
+                            <div class="input-field-wrapper">
+                                <input 
+                                    type="text" 
+                                    id="signup-name" 
+                                    placeholder="e.g. XYZ" 
+                                    required
+                                    autocomplete="name"
+                                >
+                            </div>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="signup-email">Email <span class="required-star">*</span></label>
+                            <div class="input-field-wrapper">
+                                <input 
+                                    type="email" 
+                                    id="signup-email" 
+                                    placeholder="e.g. xyz.@gmail.com" 
+                                    required
+                                    autocomplete="email"
+                                >
+                            </div>
+                        </div>
+
+                        
+
+                        <div class="input-group">
+                            <label for="signup-password">Create Password <span class="required-star">*</span></label>
+                            <div class="input-field-wrapper">
+                                <input 
+                                    type="password" 
+                                    id="signup-password" 
+                                    placeholder="Minimum 6 characters" 
+                                    minlength="6"
+                                    required
+                                    autocomplete="new-password"
+                                >
+                                <button type="button" class="pwd-toggle-btn" onclick="togglePasswordVisibility('signup-password', this)" aria-label="Toggle password visibility">
+                                    <span class="eye-icon">👁️</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="auth-submit-btn student-btn" id="signup-submit-btn">
+                            <span class="btn-text">Create Student Account</span>
+                            <span class="btn-spinner" style="display: none;"></span>
+                            <span class="btn-arrow">→</span>
+                        </button>
+                    </form>
+
+                    <!-- Quick switch footer -->
+                    <div class="auth-card-footer" id="student-card-footer">
+                        <p id="footer-switch-text">New to Campus-Tutor? <a href="javascript:void(0)" onclick="switchStudentAuthMode('signup')">Create a student account</a></p>
+                    </div>
+                </div>
+
+                <!-- ==============================================
+                     ADMIN PORTAL SECTION
+                     ============================================== -->
+                <div id="admin-form-wrapper" class="form-mode-view" role="tabpanel" style="display: none;">
+                    <form id="admin-login-form" onsubmit="handleAdminLogin(event)">
+                        <div class="input-group">
+                            <label for="admin-email">Staff ID or Admin Email <span class="required-star">*</span></label>
+                            <div class="input-field-wrapper">
+                                <input 
+                                    type="text" 
+                                    id="admin-email" 
+                                    placeholder="e.g. admin@campus.edu or ADM-8924" 
+                                    required
+                                    autocomplete="username"
+                                >
+                            </div>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="admin-password">Administrative Key / Password <span class="required-star">*</span></label>
+                            <div class="input-field-wrapper">
+                                <input 
+                                    type="password" 
+                                    id="admin-password" 
+                                    placeholder="Enter administrative master password" 
+                                    required
+                                    autocomplete="current-password"
+                                >
+                                <button type="button" class="pwd-toggle-btn" onclick="togglePasswordVisibility('admin-password', this)" aria-label="Toggle password visibility">
+                                    <span class="eye-icon">👁️</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="auth-submit-btn admin-btn" id="admin-submit-btn">
+                            <span class="btn-text">Sign In</span>
+                            <span class="btn-spinner" style="display: none;"></span>
+                            <span class="btn-arrow">→</span>
+                        </button>
+                    </form>
+
+                    <!-- Quick Demo Fill Helper -->
+                   
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <p>&copy; 2026 Campus-Tutor. Connecting campus minds for peer academic success.</p>
+    </footer>
+
+    <!-- Firebase Backend SDK & Core Scripts -->
+    <script type="module" src="firebase-backend.js"></script>
+    <script src="app.js"></script>
+
+    <script>
+        let currentRole = 'student';
+        let currentStudentMode = 'signin'; // 'signin' or 'signup'
+
+        function showAlert(msg, isSuccess = false) {
+            const box = document.getElementById('auth-alert-message');
+            const txt = document.getElementById('auth-alert-text');
+            const icon = document.getElementById('auth-alert-icon');
+            if (!box || !txt) return;
+
+            txt.textContent = msg;
+            icon.textContent = isSuccess ? '✅' : '⚠️';
+            box.className = isSuccess ? 'auth-alert-box success' : 'auth-alert-box';
+            box.style.display = 'flex';
+        }
+
+        function hideAlert() {
+            const box = document.getElementById('auth-alert-message');
+            if (box) box.style.display = 'none';
+        }
+
+        function switchRole(role) {
+            currentRole = role;
+            hideAlert();
+            const studentBtn = document.getElementById('btn-role-student');
+            const adminBtn = document.getElementById('btn-role-admin');
+            const roleSlider = document.getElementById('role-slider');
+            const studentWrapper = document.getElementById('student-form-wrapper');
+            const adminWrapper = document.getElementById('admin-form-wrapper');
+            const heading = document.getElementById('form-heading');
+            const subheading = document.getElementById('form-subheading');
+            const formCard = document.getElementById('auth-form-card');
+
+            if (role === 'student') {
+                studentBtn.classList.add('active');
+                studentBtn.setAttribute('aria-selected', 'true');
+                adminBtn.classList.remove('active');
+                adminBtn.setAttribute('aria-selected', 'false');
+                roleSlider.style.transform = 'translateX(0%)';
+                roleSlider.style.background = 'var(--accent-amber)';
+
+                studentWrapper.style.display = 'block';
+                adminWrapper.style.display = 'none';
+
+                if (currentStudentMode === 'signin') {
+                    heading.textContent = 'Welcome Back, Student!';
+                    subheading.textContent = 'Sign in to access your peer tutoring dashboard.';
+                } else {
+                    heading.textContent = 'Create Student Account';
+                    subheading.textContent = 'Register on Campus-Tutor with your institutional credentials.';
+                }
+
+                formCard.classList.remove('admin-mode-active');
+            } else {
+                adminBtn.classList.add('active');
+                adminBtn.setAttribute('aria-selected', 'true');
+                studentBtn.classList.remove('active');
+                studentBtn.setAttribute('aria-selected', 'false');
+                roleSlider.style.transform = 'translateX(100%)';
+                roleSlider.style.background = '#3B82F6';
+
+                studentWrapper.style.display = 'none';
+                adminWrapper.style.display = 'block';
+
+                heading.textContent = 'Admin Console Sign In';
+                subheading.textContent = 'Institutional security verification required for administrative access.';
+
+                formCard.classList.add('admin-mode-active');
+            }
+        }
+
+        function switchStudentAuthMode(mode) {
+            currentStudentMode = mode;
+            hideAlert();
+            const tabSignIn = document.getElementById('tab-sub-signin');
+            const tabSignUp = document.getElementById('tab-sub-signup');
+            const formSignIn = document.getElementById('student-login-form');
+            const formSignUp = document.getElementById('student-signup-form');
+            const heading = document.getElementById('form-heading');
+            const subheading = document.getElementById('form-subheading');
+            const footerText = document.getElementById('footer-switch-text');
+
+            if (mode === 'signin') {
+                tabSignIn.classList.add('active');
+                tabSignUp.classList.remove('active');
+                formSignIn.style.display = 'block';
+                formSignUp.style.display = 'none';
+                heading.textContent = 'Welcome Back, Student!';
+                subheading.textContent = 'Sign in to access your peer tutoring dashboard.';
+                if (footerText) {
+                    footerText.innerHTML = `New to Campus-Tutor? <a href="javascript:void(0)" onclick="switchStudentAuthMode('signup')">Create a student account</a>`;
+                }
+            } else {
+                tabSignUp.classList.add('active');
+                tabSignIn.classList.remove('active');
+                formSignIn.style.display = 'none';
+                formSignUp.style.display = 'block';
+                heading.textContent = 'Create Student Account';
+                subheading.textContent = 'Register on Campus-Tutor with your institutional credentials.';
+                if (footerText) {
+                    footerText.innerHTML = `Already registered? <a href="javascript:void(0)" onclick="switchStudentAuthMode('signin')">Sign in instead</a>`;
+                }
+            }
+        }
+
+        function togglePasswordVisibility(inputId, btn) {
+            const input = document.getElementById(inputId);
+            if (!input) return;
+            const eyeIcon = btn.querySelector('.eye-icon');
+            if (input.type === 'password') {
+                input.type = 'text';
+                eyeIcon.textContent = '🙈';
+            } else {
+                input.type = 'password';
+                eyeIcon.textContent = '👁️';
+            }
+        }
+
+        function getRedirectTarget() {
+            const params = new URLSearchParams(window.location.search);
+            return params.get("redirect") || "index.html";
+        }
+
+        // Handle Student Sign In
+        async function handleStudentLogin(e) {
+            e.preventDefault();
+            hideAlert();
+            const email = document.getElementById('student-email').value.trim();
+            const password = document.getElementById('student-password').value;
+            const submitBtn = document.getElementById('student-submit-btn');
+            const btnText = submitBtn.querySelector('.btn-text');
+            const btnSpinner = submitBtn.querySelector('.btn-spinner');
+            const btnArrow = submitBtn.querySelector('.btn-arrow');
+
+            if (!email || !password) {
+                showAlert('Please fill in both email and password.');
+                return;
+            }
+
+            btnText.textContent = 'Signing in...';
+            btnSpinner.style.display = 'inline-block';
+            btnArrow.style.display = 'none';
+            submitBtn.disabled = true;
+
+            let loggedUser = null;
+
+            // 1. Try Backend API
+            try {
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password, role: 'student' })
+                });
+                if (res.ok) {
+                    loggedUser = await res.json();
+                    localStorage.setItem('campus_tutor_user', JSON.stringify(loggedUser));
+                }
+            } catch (_) {}
+
+            // 2. Fallback to CampusBackend
+            if (!loggedUser) {
+                try {
+                    const backend = window.CampusBackend;
+                    if (backend) {
+                        loggedUser = await backend.signInStudent(email, password);
+                    }
+                } catch (err) {
+                    btnText.textContent = 'Sign In';
+                    btnSpinner.style.display = 'none';
+                    btnArrow.style.display = 'inline';
+                    submitBtn.disabled = false;
+                    showAlert(formatAuthErrorMessage(err));
+                    return;
+                }
+            }
+
+            if (loggedUser) {
+                showAlert(`Welcome back, ${loggedUser.name}! Redirecting...`, true);
+                if (typeof initAuthNav === 'function') initAuthNav();
+
+                const target = getRedirectTarget();
+                setTimeout(() => {
+                    window.location.href = target;
+                }, 600);
+            } else {
+                btnText.textContent = 'Sign In';
+                btnSpinner.style.display = 'none';
+                btnArrow.style.display = 'inline';
+                submitBtn.disabled = false;
+                showAlert('Unable to sign in. Please verify your credentials.');
+            }
+        }
+
+        // Handle Student Sign Up
+        async function handleStudentSignup(e) {
+            e.preventDefault();
+            hideAlert();
+            const name = document.getElementById('signup-name').value.trim();
+            const email = document.getElementById('signup-email').value.trim();
+            const studentId = document.getElementById('signup-id').value.trim();
+            const department = document.getElementById('signup-dept').value.trim();
+            const password = document.getElementById('signup-password').value;
+            const submitBtn = document.getElementById('signup-submit-btn');
+            const btnText = submitBtn.querySelector('.btn-text');
+            const btnSpinner = submitBtn.querySelector('.btn-spinner');
+            const btnArrow = submitBtn.querySelector('.btn-arrow');
+
+            if (!name || !email || !password) {
+                showAlert('Please fill in all required fields.');
+                return;
+            }
+
+            btnText.textContent = 'Creating account...';
+            btnSpinner.style.display = 'inline-block';
+            btnArrow.style.display = 'none';
+            submitBtn.disabled = true;
+
+            let registeredUser = null;
+
+            // 1. Try Backend API
+            try {
+                const res = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, email, password, studentId, department })
+                });
+                if (res.ok) {
+                    registeredUser = await res.json();
+                    localStorage.setItem('campus_tutor_user', JSON.stringify(registeredUser));
+                } else {
+                    const errData = await res.json();
+                    if (errData && errData.error) throw new Error(errData.error);
+                }
+            } catch (apiErr) {
+                if (apiErr.message && !apiErr.message.includes('fetch')) {
+                    btnText.textContent = 'Create Student Account';
+                    btnSpinner.style.display = 'none';
+                    btnArrow.style.display = 'inline';
+                    submitBtn.disabled = false;
+                    showAlert(apiErr.message);
+                    return;
+                }
+            }
+
+            // 2. Fallback to CampusBackend
+            if (!registeredUser) {
+                try {
+                    const backend = window.CampusBackend;
+                    if (backend) {
+                        registeredUser = await backend.signUpStudent({
+                            name,
+                            email,
+                            password,
+                            studentId,
+                            department
+                        });
+                    }
+                } catch (err) {
+                    btnText.textContent = 'Create Student Account';
+                    btnSpinner.style.display = 'none';
+                    btnArrow.style.display = 'inline';
+                    submitBtn.disabled = false;
+                    showAlert(formatAuthErrorMessage(err));
+                    return;
+                }
+            }
+
+            if (registeredUser) {
+                showAlert(`Account created successfully! Welcome, ${registeredUser.name}.`, true);
+                if (typeof initAuthNav === 'function') initAuthNav();
+
+                const target = getRedirectTarget();
+                setTimeout(() => {
+                    window.location.href = target;
+                }, 700);
+            } else {
+                btnText.textContent = 'Create Student Account';
+                btnSpinner.style.display = 'none';
+                btnArrow.style.display = 'inline';
+                submitBtn.disabled = false;
+                showAlert('Failed to create account. Please try again.');
+            }
+        }
+
+        // Handle Google Sign-In
+        async function handleGoogleSignIn() {
+            hideAlert();
+            try {
+                const backend = window.CampusBackend;
+                const user = await backend.signInWithGoogle();
+                showAlert(`Signed in with Google as ${user.name}! Redirecting...`, true);
+                if (typeof initAuthNav === 'function') initAuthNav();
+                const target = getRedirectTarget();
+                setTimeout(() => {
+                    window.location.href = target;
+                }, 600);
+            } catch (err) {
+                const msg = formatAuthErrorMessage(err);
+                showAlert(msg);
+            }
+        }
+
+        // Handle Admin Sign In
+        async function handleAdminLogin(e) {
+            e.preventDefault();
+            hideAlert();
+            const email = document.getElementById('admin-email').value.trim();
+            const password = document.getElementById('admin-password').value;
+            const submitBtn = document.getElementById('admin-submit-btn');
+            const btnText = submitBtn.querySelector('.btn-text');
+            const btnSpinner = submitBtn.querySelector('.btn-spinner');
+            const btnArrow = submitBtn.querySelector('.btn-arrow');
+
+            if (!email || !password) {
+                showAlert('Please enter administrative credentials.');
+                return;
+            }
+
+            btnText.textContent = 'Signing in...';
+            btnSpinner.style.display = 'inline-block';
+            btnArrow.style.display = 'none';
+            submitBtn.disabled = true;
+
+            try {
+                const backend = window.CampusBackend;
+                const adminUser = await backend.signInAdmin(email, password);
+
+                showAlert('Administrator clearance verified. Entering Console...', true);
+                if (typeof initAuthNav === 'function') initAuthNav();
+
+                setTimeout(() => {
+                    window.location.href = "admin.html";
+                }, 600);
+            } catch (err) {
+                btnText.textContent = 'Sign In';
+                btnSpinner.style.display = 'none';
+                btnArrow.style.display = 'inline';
+                submitBtn.disabled = false;
+
+                const msg = formatAuthErrorMessage(err);
+                showAlert(msg);
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get("mode") === "signup") {
+                switchStudentAuthMode("signup");
+            }
+        });
+
+        function fillAdminDemo() {
+            switchRole('admin');
+            document.getElementById('admin-email').value = 'admin@campus.edu';
+            document.getElementById('admin-password').value = 'adminMaster#2026';
+            showAlert('Demo credentials filled. Click Sign In to enter console.', true);
+        }
+
+        function formatAuthErrorMessage(err) {
+            if (!err) return "Authentication error occurred.";
+            const code = err.code || err.message || "";
+            if (code.includes('user-not-found') || code.includes('wrong-password') || code.includes('invalid-credential')) {
+                return "Invalid credentials. Please verify your campus email and password.";
+            }
+            if (code.includes('email-already-in-use')) {
+                return "This campus email is already registered. Please sign in or reset password.";
+            }
+            if (code.includes('weak-password')) {
+                return "Password should be at least 6 characters long.";
+            }
+            if (code.includes('network-request-failed')) {
+                return "Network connection issue. Please check your internet connection.";
+            }
+            return err.message || "An authentication error occurred.";
+        }
+    </script>
+</body>
+</html>
